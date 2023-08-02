@@ -1,0 +1,362 @@
+@charset "UTF-8";
+
+/* 画面表示サイズ */
+div#Displaysize{
+	width:100%;
+	min-width:960px;
+	min-height:500px;
+}
+
+/* 印刷時の用紙設定 */
+@page{
+	size:A4; /* 用紙サイズ */
+	margin:0; /* ヘッダー・フッダーを無効化 */
+}
+
+/* 要素の初期化 */
+*{
+	margin:0;
+	padding:0;
+	
+	/* デフォルトのフォント */
+	color:000;
+	font-family:"ＭＳ Ｐ明朝";
+	font-size:13pt;
+	font-weight:normal;
+	
+	/* 背景色・背景画像を印刷する（Chromeのみで有効）*/
+	-webkit-print-color-adjust: exact;
+}
+
+/* リスト初期化 */
+ul{
+	list-style:none;
+	padding-left:0;
+}
+
+/* ページレイアウト (section.sheetを１ページとする) */
+.sheet{
+	overflow:visible;
+	position:relative;
+
+	/* 用紙サイズ A4 */
+	height:297mm;
+	width:210mm;
+
+	/* 余白サイズ */
+	padding-top:20mm;
+	padding-left:23mm;
+	padding-right:23mm;
+}
+
+/* プレビュー用のスタイル */
+@media screen{
+	body{
+		background: #E0E0E0;
+	}
+	
+	.sheet{
+	background: white; /* 背景を白く */
+	box-shadow:0 0.5mm 2mm rgba(0, 0, 0, 0.3); /* ドロップシャドウ */
+	margin:5mm auto;
+	}
+}
+
+/* 汎用クラス */
+.text-left{
+	text-align:left;
+}
+
+.text-center{
+	text-align:center;
+}
+
+.text-right{
+	text-align:right;
+}
+
+.clear-element{
+	clear:both;
+}
+
+/* 各位置の指定 */
+/* 日付とNo */
+div.line1{
+	height:13mm;
+	text-align:right;
+	margin-right:15px;
+}
+
+/* タイトル */
+div.line2{
+	height:40mm;
+	font-weight:900;
+	letter-spacing:10px;
+	text-shadow:0.3px 0.5px 0 #000;
+}
+
+/* 得意先 */
+div.line3{
+	height:22mm;
+	margin-left:5px;
+	font-size:26px;
+	text-shadow:0.1px 0.5px 0 #000;
+}
+
+/* 御見積情報と自社情報 */
+div.line4{
+	height:65mm;
+	font-size:4pt;
+	margin-left:5px;
+}
+
+div.line4 div.col_1{
+	width:120mm;
+	float:left;
+	line-height:22px;
+}
+
+div.line4 div.col_2{
+	position:relative;
+	z-index:0;
+	padding-top:10mm;
+	float:left;
+	line-height:22px;
+}
+
+/* 印鑑の表示 */
+img.inkan{
+	position:absolute;
+	z-index:1;
+	top:10mm;
+	left:37mm;
+	height:29.5mm;
+	width:29.5mm;
+}
+
+/* 印鑑の表示(登録番号を記載する用) */
+img.inkan2{
+	position:absolute;
+	z-index:1;
+	top:22.5mm;
+	left:37mm;
+	height:29.5mm;
+	width:29.5mm;
+}
+
+/* 御見積金額の表示 */
+div.line5{
+	font-size:24pt;
+	text-decoration:underline;
+	text-decoration-thickness:2px;
+	font-weight:bold;
+	text-shadow:0.1px 0.5px 0 #000;
+}
+
+li{
+	padding:2px 0;
+}
+
+#money{
+	height:12mm;
+	text-decoration:underline;
+	text-underline-position:under;
+	border-width:5px;
+	margin-left:5px;
+	font-size:20px;
+	font-weight:bold;
+}
+
+.line5 span{
+	font-size:22.5px;
+	font-weight:bold;
+}
+
+/* タイトル */
+h1{
+	font-size:35px;
+	font-weight:bold;
+	letter-spacing:4px;
+	color: #000;
+	border-bottom:2px solid black;
+	display:inline-block;
+	margin-top:50px;
+	margin-left:276px;
+}
+
+/* 得意先 */
+h2{
+	font-weight:normal;
+}
+
+h2.customer_name{
+	text-decoration:underline;
+	text-decoration-thickness:1.5px;
+	font-size:24px;
+}
+
+h2.line3{
+	font-size:24px;
+}
+
+/* テーブル共通 */
+table{
+	border-collapse:collapse;
+	border-spacing:0;
+	border:1.8px #000 solid;
+	margin-left:auto;
+	margin-right:auto;
+}
+
+table th{
+	font-weight:normal;
+	color: #000;
+	border:1.8px #000 solid;
+	height:35px;
+}
+
+table td{
+	text-align:right;
+	border:1.8px #000 solid;
+}
+
+#none{
+	border:none;
+}
+
+#Lnone{
+	border-right-style:none;
+	border-bottom-style:none;
+	border-top-style:none;
+}
+
+#Rnone{
+	border-left-style:none;
+	border-bottom-style:none;
+	border-top-style:none;
+}
+
+#Cnone{
+	border-bottom-style:none;
+	border-top-style:none;
+}
+
+#border{
+	border-right-width: 3px;
+}
+
+/* テーブル 御見積書 */
+table.omitumori{
+	width:100%;
+}
+
+table.omitumori tr{
+	height:6mm;
+}
+
+table.omitumori th.subject{
+	width:59%;
+}
+
+table.omitumori th.quantity{
+	width:10%;
+}
+
+table.omitumori th.unit_price{
+	width:14%;
+}
+
+table.omitumori th.money{
+	width:17%;
+}
+
+table.omitumori td.space{
+	border-left-style:hidden;
+	border-bottom-style:hidden;
+}
+
+table.omitumori tr.dataline:nth-child(odd) td{
+	background-color: #fff;
+}
+
+table.omitumori tr.dataline:nth-child(even) td{
+	background-color: #fff;
+}
+
+form.insatu{
+	text-align:center;
+	font-size:1.5em;
+}
+
+table.omitumori td.text-center2{
+	text-align:right;
+}
+
+.rspct{
+	font-size:20px;
+	font-weight:900;
+	text-shadow:0.1px 0.5px 0 #000;
+	letter-spacing:1px;
+}
+
+/* Noの太字 */
+#number{
+	font-weight:bold;
+	text-shadow:0.1px 0.5px 0 #000;
+}
+
+.text{
+	margin-left:2px;
+	resize:none;
+	width:435px;
+	height:110px;
+	overflow:hidden;
+	border:none;
+	margin-top:-45px;
+}
+
+.textMiddle{
+	margin-left:2px;
+	resize:none;
+	width:435px;
+	height:110px;
+	overflow:hidden;
+	border:none;
+	margin-top:-70px;
+}
+
+.textCalculate{
+	margin-left:2px;
+	resize:none;
+	width:435px;
+	height:115px;
+	overflow:hidden;
+	border:none;
+	margin-top:-40px;
+}
+
+.textMiddleCalculate{
+	margin-left:2px;
+	resize:none;
+	width:435px;
+	height:115px;
+	overflow:hidden;
+	border:none;
+	margin-top:-18px;
+}
+
+.textMiddleCalculate2{
+	margin-right:2px;
+	resize:none;
+	width:435px;
+	height:115px;
+	overflow:hidden;
+	border:none;
+	margin-top:-18px;
+}
+
+.line{
+	border-bottom:1.5px solid black;
+	padding-bottom:-3px;
+	width:270px;
+}

@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<link th:href="@{/css/estimateDetail.css}" rel="stylesheet"/>
+	<!-- <link rel="stylesheet" type="text/css" th:href="@{/estimateDetail.css}"/>-->
+	<title>御見積書</title>
+	
+	<!-- 画面表示サイズ -->
+	<style type="text/css">
+	body{
+		zoom:91%; /* 表示サイズの設定 */
+	}
+	</style>
+	
+	<!-- 印刷ボタン -->
+	<style type="text/css">
+	@media print{
+		.print_button{display:none;}
+		body{zoom:96%;} /* 96%で印刷 */
+	}
+	</style>
+</head>
+<body>
+	<!-- 画面サイズ指定 -->
+	<div id="Displaysize">
+		<div th:object="${form}">
+			<script th:inline="javascript">
+				function workingDays(begin,end){
+					var beginDate = new Date(begin);
+					var endDate = new Date(end);
+					
+					//開始と終了日付のタイムスタンプ
+					var beginTime = beginDate.getTime();
+					var endTime = endDate.getTime();
+					
+					//時間差を算出
+					var diff = endTime - beginTime;
+					
+					//時間差をミリ秒単位を日単位に変換し（切り捨て）、1日分を加算
+					var term = Math.floor(diff / (24 * 60 * 60 * 1000)) + 1;
+					
+					//定休日となる曜日の設定
+					var regularDayOff = [0,6];
+					
+					//一週間の定休日の数
+					var lenDayOff = regularDayOff.length;
+					
+					//期間に入る週の数、7で割って切り捨てて算出する
+					var weeks = Math.floor(term / 7);
+					
+					//週の数から、その期間の定休日の休日数を算出する
+					var dayOffs = weeks * lenDayOff;
+					
+					//週の数に入らない余りの日数
+					var remainderDays = term % 7;
+					
+					//余りの日の処理
+					if(remainderDays>0){
+						//余りの日がある場合、開始日付から余りの日数だけ曜日が定休日かの判定を行う
+						//開始日付の曜日数値の取得
+						var beginDay = beginDate.getDay();//0~6の曜日数値
+						
+						for(var i = 0; i < remainderDays; i++){
+							//曜日数値に余りの日数を加算していき、7で割った余りの曜日数値が
+							//定休日の配列に含まれるか
+							if(regularDayOff.indexOf((beginDay + i) % 7) != -1){
+								//定休日の配列に含まれる場合、休日数に加算する
+								dayOffs++;
+							}
+						}
+					};
+					
+					//祝日の設定
+					var holidayDates = [
+						//2020年
+						'2020/01/01','2020/01/02','2020/01/03',
+						'2020/01/13','2020/02/11','2020/02/23','2020/02/24','2020/03/20',
+						'2020/04/29','2020/05/03','2020/05/04','2020/05/05','2020/05/06','2020/07/23',
+						'2020/07/24','2020/08/10','2020/09/21','2020/09/22','2020/11/03','2020/11/23'
+						
+						//2021年
+						,'2021/01/01','2021/01/02','2021/01/03',
+						,'2021/01/11','2021/02/11','2021/02/23','2021/03/20','2021/04/29'
+						,'2021/05/03','2021/05/04','2021/05/05','2021/07/22','2021/07/23' ,'2021/08/09'
+						,'2021/09/20','2021/09/23','2021/11/03','2021/11/23'
+						
+						//2022年
+						,'2022/01/01','2022/01/02','2022/01/03',
+						,'2022/01/10','2022/02/11','2022/02/23'
+						,'2022/03/21','2022/04/29','2022/05/03','2022/05/04','2022/05/05','2022/07/18'
+						,'2022/08/11','2022/09/19','2022/09/23','2022/10/10','2022/11/03','2022/11/23'
+						
+						//2023年
+						,'2023/01/01','2023/01/02','2023/01/03',
+						,'2023/01/09','2023/02/11','2023/02/23'
+						,'2023/03/21','2023/04/29','2023/05/03','2023/05/04','2023/05/05','2023/07/17'
+						,'2023/08/11','2023/09/18','2023/09/23','2023/10/09','2023/11/03','2023/11/23'
+						
+						//2024年
+						,'2024/01/01','2024/01/02','2024/01/03',
+						,'2024/01/08','2024/02/11','2024/02/12'
+						,'2024/02/23','2024/03/20','2024/04/29','2024/05/03','2024/05/04','2024/05/05'
+						,'2024/05/06','2024/07/15','2024/08/11','2024/08/12','2024/09/16','2024/09/22'
+						,'2024/09/23','2024/10/14','2024/11/03','2024/11/04','2024/11/23'
+						
+						//2025年
+						,'2025/01/01','2025/01/02','2025/01/03',
+						,'2025/01/13','2025/02/11','2025/02/23'
+						,'2025/02/24','2025/03/20','2025/04/29','2025/05/03','2025/05/04','2025/05/05'
+						,'2025/05/06','2025/07/21','2025/08/11','2025/09/15','2025/09/23','2025/10/13'
+						,'2025/11/03','2025/11/23','2025/11/24'
+						
+						//2026年
+						,'2026/01/01','2026/01/02','2026/01/03',
+						,'2026/01/12','2026/02/11','2026/02/23'
+						,'2026/03/20','2026/04/29','2026/05/03','2026/05/04','2026/05/05','2026/05/06'
+						,'2026/07/20','2026/08/11','2026/09/21','2026/09/22','2026/09/23','2026/10/12'
+						,'2026/11/03','2026/11/23'
+						
+						//2027年
+						,'2027/01/01','2027/01/02','2027/01/03',
+						,'2027/01/11','2027/02/11','2027/02/23'
+						,'2027/03/21','2027/03/22','2027/04/29','2027/05/03','2027/05/04','2027/05/05'
+						,'2027/07/19','2027/08/11','2027/09/20','2027/09/23','2027/10/11','2027/11/03'
+						,'2027/11/23'
+						
+						//2028年
+						,'2028/01/01','2028/01/02','2028/01/03',
+						,'2028/01/10','2028/02/11','2028/02/23'
+						,'2028/03/20','2028/04/29','2028/05/03','2028/05/04','2028/05/05','2028/07/17'
+						,'2028/08/11','2028/09/18','2028/09/22','2028/10/09','2028/11/03','2028/11/23'
+						
+						//2029年
+						,'2029/01/01','2029/01/02','2029/01/03',
+						,'2029/01/08','2029/02/11' ,'2029/02/12'
+						,'2029/02/23','2029/03/20','2029/04/29','2029/04/30','2029/05/03','2029/05/04'
+						,'2029/05/05','2029/07/16','2029/08/11','2029/09/17','2029/09/23','2029/09/24'
+						,'2029/10/08','2029/11/03','2029/11/23'
+						
+						//2030年
+						,'2030/01/01','2030/01/02','2030/01/03',
+						,'2030/01/14','2030/02/11','2030/02/23'
+						,'2030/03/20','2030/04/29','2030/05/03','2030/05/04','2030/05/05','2030/05/06'
+						,'2030/07/15','2030/08/11','2030/08/12','2030/09/16','2030/09/23','2030/10/14'
+						,'2030/11/03','2030/11/04','2030/11/23'
+						
+						//2031年
+						,'2031/01/01','2031/01/02','2031/01/03',
+						,'2031/01/13','2031/02/11','2031/02/23'
+						,'2031/02/24','2031/03/21','2031/04/29','2031/05/03','2031/05/04','2031/05/05'
+						,'2031/05/06','2031/07/21','2031/08/11','2031/09/15','2031/09/23','2031/10/13'
+						,'2031/11/03','2031/11/23','2031/11/24'
+					];
+					
+					//祝日をソートする
+					holidayDates.sort();
+					//祝日のタイムスタンプの配列
+					var holidayTime=[];
+					for(var i = 0; i < holidayDates.length; i++){
+						//日付オブジェクトを設定する
+						var dateObj = new Date(holidayDates[i]);
+						if(regularDayOff.indexOf(dateObj.getDay())==-1){
+							//定休日の曜日に存在しない場合、祝日のタイムスタンプの配列に追加する
+							holidayTime.push(dateObj.getTime());
+						}
+					}
+					
+					//祝日のカウント用
+					var holidays=0;
+					//開始日付より大きいかのフラグ
+					var flgBegin=false;
+					for(var i = 0; i < holidayTime.length; i++){
+						//開始日付のフラグにより処理を変える
+						if(flgBegin == false){
+							//開始日付より大きくない状態
+							if(beginTime <= holidayTime[i]){
+								//祝日が開始日付より大きい場合、フラグを設定する
+								flgBegin=true;
+								if(holidayTime[i] <= endTime){
+									//終了日付より小さい場合、対象期間の範囲内なので加算する
+									holidays++;
+								}else{
+									//終了日付より大きい場合、対象期間の範囲外なのでループを抜け出す
+									break;
+								}
+							}
+						}else{
+							//開始日付より大きい状態
+							if(holidayTime[i] <= endTime){
+								//終了日付より小さい場合、対象期間の範囲内なので加算する
+								holidays++;
+							}else{
+								//終了日付より大きい場合、対象期間の範囲外なのでループを抜け出す
+								break;
+							}
+						}
+					}
+					var day = term - dayOffs - holidays; //稼働日数(途中入場)
+					return day;
+				}
+				function workingWeekFirstDays(begin){
+					//営業開始が1日から始まらないため、例外として開始日扱いする月日
+					//1/1～1/3は休日
+					var workingWeekDay=[
+						"2020/1/6","2020/2/3","2020/3/2","2020/8/3","2020/11/2",
+						"2021/1/4","2021/5/6","2021/8/2",
+						"2022/1/4","2022/5/2","2022/10/3",
+						"2023/1/4","2023/4/3","2023/7/3","2023/10/2",
+						"2024/1/4","2024/6/3","2024/9/2","2024/12/2",
+						"2025/1/6","2025/2/2","2025/3/2","2025/6/2","2025/11/4",
+						"2026/1/5","2026/2/2","2026/3/2","2026/8/3","2026/11/2",
+						"2027/1/4","2027/5/6","2027/8/2",
+						"2028/1/4","2028/4/3","2028/7/3","2028/10/2",
+						"2029/1/4","2029/4/2","2029/7/2","2029/9/3","2029/12/3",
+						"2030/1/4","2030/6/3","2030/9/2","2030/12/2",
+						"2031/1/6","2031/2/3","2031/3/3","2031/6/2","2031/11/4"
+					];
+					var beginDate = new Date(begin).toLocaleDateString();
+					for(var i=0;i<workingWeekDay.length;i++){
+						//日付オブジェクトを設定する
+						var dateObj = new Date(workingWeekDay[i]).toLocaleDateString();
+						//開始日が上の日付に該当するなら日割りとして扱わない
+						if(beginDate==dateObj){
+							return true;
+						}
+					}
+					return false;
+				}
+				/*データベースで使われる変数をJS変数化*/
+				var startPeriod=/*[[${form.startPeriod}]]*/'1';
+				var startPeriodLastday=/*[[${form.startPeriodLastday}]]*/ '2';
+				var startPeriodDay=/*[[${form.startPeriodDay}]]*/ '2';
+				var startPeriodDay01=/*[[${form.startPeriodDay01}]]*/ '3';
+				var payment=/*[[${form.payment}]]*/'4';
+				var mBranchNumber=/*[[${form.mBranchNumber}]]*/'4';
+				var middleDiscount=/*[[${form.middleDiscount}]]*/'4';
+				
+				//中割orNULL
+				var middleDiscount2 = /*[[${form.middleDiscount}]]*/ '7';
+				//基準時間
+				var referenceTime = /*[[${form.referenceTime}]]*/ '8';
+				//単価
+				var value = /*[[${form.intValue}]]*/ '6';
+				//単価(1000円未満切り捨て)
+				var value1000 = Math.floor(value / 1000) * 1000;
+				var countMonth = /*[[${form.countMonth}]]*/ '5';
+				var correctSPM = /*[[${form.correctSPM}]]*/ '7';
+				var unit = /*[[${form.unit}]]*/ '7';
+				var thousandCuts =/*[[${form.thousandCuts}]]*/'7';
+				var workingPeriod=new Date(startPeriod);
+				//稼働日数(途中入場)
+				var workingDay = workingDays(startPeriod,startPeriodLastday);
+				//稼働日数(1日入場) */
+				var workingDay2 = workingDays(startPeriodDay01,startPeriodLastday);
+				//数量(小数点第二位未満切り捨て)
+				var quantity = Math.floor(((workingDay / workingDay2) * 100) +
+						(countMonth * 100)) / 100;
+				//途中入場の加算
+				var quantity2 = Math.floor((workingDay / workingDay2)*100)/100;
+				//小計
+				var subtotal = Math.floor(((quantity * 100) * (value * 100))/10000);
+				//消費税
+				var tax = Math.floor(((quantity * 100) * (value * 100)) /100000);
+				//合計金額
+				var total = Math.floor(subtotal + tax);
+				//期間開始日(月のみ)
+				var startPeriodMonth = /*[[${form.startPeriodMonth}]]*/ '7';
+				//暫定開始日
+				var workingWeekFirstDay = workingWeekFirstDays(startPeriod);
+				//作業開始日が営業開始日かどうか
+				var workingWeekFirstDayTrue=startPeriodDay == '01'||workingWeekFirstDay;
+				
+				//上限時間
+				var upperLimitTime = /*[[${form.upperLimitTime}]]*/ '7';
+				//下限時間
+				var lowerLimitTime = /*[[${form.lowerLimitTime}]]*/ '8';
+				//途中入場の上限時間
+				var middleUpperLimitTime = Math.floor(upperLimitTime * quantity2);
+				//途中入場の下限時間
+				var middleLowerLimitTime = Math.floor(lowerLimitTime * quantity2);
+				//月単価単位切り捨ての可否
+				var floorValue= !workingWeekFirstDayTrue&&thousandCuts=='1000';
+				
+				//途中入場の上限時間(1000円未満切り捨て)
+				var middleUpperLimitTime1 = Math.floor(upperLimitTime * quantity2*10)/10;
+				//途中入場の下限時間(1000円未満切り捨て)
+				var middleLowerLimitTime1 = Math.floor(lowerLimitTime * quantity2*10)/10;
+				var newValue=floorValue?value1000:value;
+				
+				//超過単価(10円切り捨て)
+				var excessUnitPrice10 = Math.floor((newValue / upperLimitTime) / 10) * 10;
+				//超過単価(100円切り捨て)
+				var excessUnitPrice100 = Math.floor((newValue / upperLimitTime) / 100) * 100;
+				
+				//控除単価(10円切り捨て)
+				var deductionUnitPrice10 = Math.floor((newValue / lowerLimitTime) / 10) * 10;
+				//控除単価(100円切り捨て)
+				var deductionUnitPrice100 = Math.floor((newValue / lowerLimitTime) / 100) * 100;
+				
+				//中割単価(10円切り捨て)
+				var middleDiscount10 = Math.floor((newValue / ((upperLimitTime + lowerLimitTime) / 2)) / 10) * 10;
+				//中割単価(100円切り捨て)
+				var middleDiscount100 = Math.floor((newValue / ((upperLimitTime + lowerLimitTime) / 2)) / 100) * 100;
+				//小計(1000円未満切り捨て)
+				var subtotal1000 = Math.floor(((quantity * 100) * (value1000 * 100))/10000);
+				//消費税(1000円未満切り捨て)
+				var tax1000 = Math.floor(((quantity * 100) * (value1000 * 100)) /100000);
+				//合計金額(1000円未満切り捨て)
+				var total1000 = Math.floor(subtotal1000 + tax1000);
+			</script>
+			
+			<!--タイトル・印刷/遷移先ボタン -->
+			<form class="insatu">
+				<input type="button" class="print_button" value="見積書の印刷" onClick="window.print();"/>
+				<a th:href="@{/invoiceDataMake}" class="print_button">請求データ作成</a>
+				<input type="button" class="print_button" value="閉じる" onclick="window.close();"/>
+			</form>
+			
+			<!-- ページ指定-->
+			<section class="sheet">
+				<!-- 日付とNo -->
+				<div class="line1" >
+					<p class="text-right" th:text="*{mDateYear + '年' + correctmDateMonth + '月' + correctmDateDay + '日'}"></p>
+					<br/>
+					<!-- Noの表示 -->
+					<p class="text-right" id="number" th:text="*{'No-' + number + '-' + mBranchNumber}"></p>
+				</div>
+				
+				<!-- タイトルの表示 -->
+				<div class="line2">
+					<h1 class="text-center">御　見　積　書</h1>
+				</div>
+				
+				<!-- 得意先名 -->
+				<div class="line3">
+					<h2 class="customer_name" th:text="*{company + '　御中'}"></h2>
+				</div>
+				
+				<!-- 御見積情報と自社情報 -->
+				<div class="line4">
+					<div class="col_1">
+						<ul>
+							<li>下記の通り御見積申し上げます。<br><br></li>
+							<li class="line">作業場所　　　貴社御指定の通り</li>
+							<li class="line">納入予定　　　　　　　 同上</li>
+							<li>
+								<th:block th:if="${form.payment == '月末締め翌月末日'|| form.payment == '月末締め翌月25日'}">
+									<p th:text="*{'支払条件&nbsp;　　' + payment}" class="line"></p>
+								</th:block>
+								<th:block th:if="${form.payment == '月末締め翌々月5日'}">
+									<p th:text="*{'支払条件　　' + payment}" class="line"></p>
+								</th:block>
+								<th:block th:if="${form.payment == '月末締め翌々月10日'|| form.payment == '月末締め翌々月15日' || form.payment == '月末締め翌々月20日'}">
+									<p th:text="*{'支払条件　　' + payment}" class="line"></p>
+								</th:block>
+								<th:block th:if="${(form.payment == 'その他') && (form.paymentMonth == '月末締め翌々月')}">
+									<p th:text="*{'支払条件　　' + paymentMonth + paymentDay + '日'}" class="line"></p>
+								</th:block>
+								<th:block th:if="${(form.payment == 'その他') && (form.paymentMonth == '月末締め翌月')}">
+									<p th:text="*{'支払条件　　　' + paymentMonth + paymentDay + '日'}" class="line"></p>
+								</th:block>
+							</li>
+							<li class="line">その他　　　　 貴社規定に準じます</li>
+							<li class="line">見積有効期限　　　　30日間</li>
+						</ul>
+					</div>
+					
+					<div class="col_2">
+						<ul style="font-size:2pt">
+							<li>〒171-0014</li>
+							<li>東京都豊島区池袋2-51-15
+							<br>第3ハルタビル201</li>
+							<li>
+								<h2 class="rspct">株式会社　リスペクツ</h2>
+							</li>
+							<li>登録番号 T6013301023605</li>
+							<li>TEL03-5391-3811　　
+							FAX03-5391-3815</li>
+						</ul>
+						<!-- 印鑑の表示 -->
+						<img class="inkan" src="/img/signatureStamp.png" >
+					</div>
+				</div>
+				
+				<!-- 御見積金額の表示 -->
+				<div class="line5">
+					<p id="money" class="money">
+						御見積金額&nbsp;:&nbsp;
+						
+						<span>
+						
+						<!-- 1日からの場合 -->
+						<script th:inline="javascript">
+						if(workingWeekFirstDayTrue){
+							document.write("&yen;" + total.toLocaleString());
+						}
+						</script>
+						
+						<!-- 途中入場の場合（1000円未満切り捨て以外 -->
+						<script th:inline="javascript">
+						if((!workingWeekFirstDayTrue) && (thousandCuts ==null)){
+							document.write("&yen;" + total.toLocaleString());
+						}
+						</script>
+						
+						<!-- 途中入場の場合（1000円未満切り捨て）-->
+						<script th:inline="javascript">
+						if(floorValue){
+							document.write("&yen;" + total1000.toLocaleString());
+						}
+						</script>
+						
+						</span>
+						.-　(税込)&nbsp;&nbsp;
+					</p>
+				</div>
+				
+				<!-- 御見積書テーブル -->
+				<div class="line6">
+					<table class="omitumori">
+						<thead>
+							<tr>
+								<th class="subject">科目</th>
+								<th class="quantity">数量</th>
+								<th class="unit_price">単価</th>
+								<th class="money">金額</th>
+							</tr>
+						</thead>
+						
+						<tbody>
+							<tr class="dataline">
+								<td id="none" > </td>
+								<td id="Lnone" > </td>
+								<td id="Cnone" > </td>
+								<td id="Rnone" > </td>
+							</tr>
+							
+							<tr class="dataline">
+								<!-- プロジェクト名 -->
+								<td class="text-left" id="none" th:text="*{project}"></td>
+								<td id="Lnone"></td>
+								<td id="Cnone"></td>
+								<td id="Rnone"></td>
+							</tr>
+							
+							<tr class="dataline">
+								<td class="text-left" id="none" th:text="*{'　　作業者　　： ' + name}"></td>
+								
+								<td class="text-right" id="Lnone">
+									<script th:inline="javascript">
+										//数量
+										document.write(quantity + "人月");
+									</script>
+								</td>
+								
+								<!-- 単価 -->
+								<td class="text-right" id="Cnone">
+									<!-- 途中入場の場合（1000円未満切捨て以外）-->
+									<script th:inline="javascript">
+									if((!workingWeekFirstDayTrue) && (thousandCuts ==null)){
+										document.write('&yen;' + value.toLocaleString() + ' .-');
+									}
+									</script>
+									<th:block th:if="${(form.startPeriodDay != '01') && (form.thousandCuts != '1000')}"></th:block>
+									
+									<!-- 途中入場の場合（1000円未満切り捨て）-->
+									<script th:inline="javascript">
+									if(floorValue){
+										document.write('&yen;' + value1000.toLocaleString() + ' .-');
+									}
+									</script>
+									<th:block th:if="${(form.startPeriodDay != '01') && (form.thousandCuts == '1000')}"></th:block>
+									
+									<!-- 1日からの場合 -->
+									<script th:inline="javascript">
+									if(workingWeekFirstDayTrue){
+										document.write('&yen;' + value.toLocaleString() + ' .-');
+									}
+									</script>
+									<th:block th:if="${(form.startPeriodDay == '01')}"></th:block>
+								</td>
+								
+								<!-- 単価合計 -->
+								<td id="Rnone">
+									<!-- 途中入場の場合（1000円未満切り捨て以外 -->
+									<script th:inline="javascript">
+									if((!workingWeekFirstDayTrue) && (thousandCuts ==null)){
+										document.write('&yen;' + subtotal.toLocaleString() + " .-&nbsp;&nbsp;");}
+									</script>
+									<th:block th:if="${(form.startPeriodDay != '01') && (form.thousandCuts != '1000')}"></th:block>
+									
+									<!-- 途中入場の場合（1000円未満切り捨て) -->
+									<script th:inline="javascript">
+									if(floorValue){
+										document.write('&yen;' + subtotal1000.toLocaleString() + " .-&nbsp;&nbsp;");
+									}
+									</script>
+									<th:block th:if="${(form.startPeriodDay != '01') && (form.thousandCuts == '1000')}">
+									</th:block>
+									
+									<!-- 1日からの場合 -->
+									<script th:inline="javascript">
+									if(workingWeekFirstDayTrue){
+										document.write('&yen;' + subtotal.toLocaleString() + " .-&nbsp;&nbsp;");
+									}
+									</script>
+									<th:block th:if="${(form.startPeriodDay == '01')}"></th:block>
+								</td>
+							</tr>
+							
+							<tr class="dataline">
+								<!-- 期間 -->
+								<td class="text-left" id="none" th:text="*{'　　期間 　　　： '+
+									startPeriodYear +'年'+ correctSPM +'月'+ correctSPD +'日～'+
+									endPeriodYear +'年'+ correctEPM +'月'+ correctEPD +'日'}"
+								></td>
+								<td id="Lnone" rowspan="9"></td>
+								<td id="Cnone" rowspan="9"></td>
+								<td id="Rnone" rowspan="9"></td>
+							</tr>
+							
+							<!-- 基準時間 -->
+							<tr class="dataline">
+								<td class="text-left" id="none">
+									
+									<!-- 固定 -->
+									<th:block th:if="${form.referenceTime == '固定'}">
+										<p>　　基準時間 ： 月額固定</p>
+									</th:block>
+									
+									<script th:inline="javascript">
+									//精算
+									if(referenceTime == '精算'){
+										if((quantity2 == 1 ||workingWeekFirstDayTrue) && (middleDiscount2 == null)){
+											document.write('　　基準時間 ： ' + lowerLimitTime + 'H～' + upperLimitTime + 'H');
+										}
+										
+										//1ヶ月入場
+										// 精算かつ中割
+										if(quantity2 == 1&&middleDiscount2 == '中割'){
+											document.write('　　基準時間 ： ' + lowerLimitTime +'H～' + upperLimitTime + 'H ※中割');
+										}
+										
+										//途中入場
+										if(quantity2 != 1&& !workingWeekFirstDayTrue){
+											//月単価単位1000円未満切り捨て以外
+											if(thousandCuts ==null){
+												//中割なし
+												if((middleDiscount2 == null)){
+													document.write('　　基準時間 ： ' + lowerLimitTime + 'H～' +
+													upperLimitTime + 'H (' + correctSPM + '月は' +
+													middleLowerLimitTime + 'H～' +
+													middleUpperLimitTime + 'H)');
+												}
+												//中割
+												if((middleDiscount2 == '中割')){
+													document.write('　　基準時間 ： ' +　lowerLimitTime + 'H～' +
+													upperLimitTime + 'H (' + correctSPM + '月は' +
+													middleLowerLimitTime + 'H～' +
+													middleUpperLimitTime + 'H) ※中割');
+												}
+											}
+											
+											//月単価単位1000円未満切り捨て
+											if(floorValue){
+												//中割なし
+												if((middleDiscount2 == null)){
+													document.write('　　基準時間 ： ' + lowerLimitTime + 'H～' +
+													upperLimitTime + 'H (' + correctSPM + '月は' +
+													middleLowerLimitTime1.toFixed(1) + 'H～' +
+													middleUpperLimitTime1.toFixed(1) + 'H)');
+												}
+												//中割
+												if((middleDiscount2 == '中割')){
+													document.write('　　基準時間 ： ' + lowerLimitTime + 'H～' +
+													upperLimitTime + 'H (' + correctSPM + '月は' +
+													middleLowerLimitTime1.toFixed(1)+ 'H～' +
+													middleUpperLimitTime1.toFixed(1)+ 'H) ※中割');
+												}
+											}
+										}
+									}
+									</script>
+								</td>
+							</tr>
+							
+							<!-- 控除単価 -->
+							<tr id="none" class="dataline">
+								<!-- 期間開始が1日かつ固定の時は空白行 -->
+								<th:block th:if="${(form.startPeriodDay == '01') && (form.referenceTime == '固定')}">
+									<td id="none" class="text-left" rowspan="7" colspan="5">
+										<textarea
+											class="text"
+											name="example"
+											cols="27"
+											rows="2"
+											maxlength="350"
+											wrap="hard"
+											id="limited"
+										></textarea>
+									</td>
+								</th:block>
+								
+								<!-- 控除単価発生 -->
+								<td id="none" class="text-left">
+									<script th:inline="javascript">
+									//基準時間が固定かつ途中入場の時
+									if(!workingWeekFirstDayTrue && (referenceTime == '固定')){
+										document.write('　　※ 途中入場につき' + correctSPM + '月分は日割り計算とする。');
+									}
+									
+									//基準時間が精算
+									if(referenceTime == '精算'){
+										//中割ではない
+										if(middleDiscount == null){
+											//(10円未満切り捨て)
+											if((unit == '10')){
+												document.write('　　控除単価 ： &yen;' +
+												deductionUnitPrice10.toLocaleString() + '.-　　(10円未満切り捨て)');
+											}
+											//(100円未満切り捨て) -->
+											if((unit == '100')){
+												document.write('　　控除単価 ： &yen;' +
+												deductionUnitPrice100.toLocaleString() + '.-　　(100円未満切り捨て)');
+											}
+										}
+										
+										//中割
+										if(middleDiscount == '中割'){
+											//(10円未満切り捨て)
+											if((unit == '10')){
+												document.write('　　控除単価 ： &yen;' +
+												middleDiscount10.toLocaleString() + '.-　　(10円未満切り捨て)');
+											}
+											//(100円未満切り捨て)
+											if((unit == '100')){
+												document.write('　　控除単価 ： &yen;' +
+												middleDiscount100.toLocaleString() + '.-　　(100円未満切り捨て)');
+											}
+										}
+									}
+									</script>
+								</td>
+							</tr>
+							
+							<!-- 超過単価 -->
+							<tr class="dataline">
+								<th:block th:if="${(form.startPeriodDay != '01') && (form.referenceTime == '固定')}">
+									<!-- 1日始まりでないかつ固定なら空白行 -->
+									<td id="none" class="text-left" rowspan="8">
+										<textarea
+											class="textMiddle"
+											name="example"
+											cols="27"
+											rows="2"
+											maxlength="350"
+											wrap="hard"
+											id="limited"
+										></textarea>
+									</td>
+								</th:block>
+								
+								<th:block th:if="${!((form.startPeriodDay != '01') && (form.referenceTime == '固定'))}">
+									<!-- 超過単価発生 -->
+									<td id="none" class="text-left">
+										<script th:inline="javascript">
+										//基準時間が精算
+										if(referenceTime == '精算'){
+											//中割ではない
+											if(middleDiscount == null){
+												//(10円未満切り捨て)
+												if((unit == '10')){
+													document.write('　　超過単価 ： &yen;' + excessUnitPrice10.toLocaleString() + '.-　　(10円未満切り捨て)');
+												}
+												
+												//(100円未満切り捨て)
+												if((unit == '100')){
+													document.write('　　超過単価 ： &yen;' + excessUnitPrice100.toLocaleString() + '.-　　(100円未満切り捨て)');
+												}
+											}
+											
+											//中割
+											if(middleDiscount == '中割'){
+												//(10円未満切り捨て)
+												if((unit == '10')){
+													document.write('　　超過単価 ： &yen;' + middleDiscount10.toLocaleString() + '.-　　(10円未満切り捨て)');
+												}
+													
+												//(100円未満切り捨て)
+												if((unit == '100')){
+													document.write('　　超過単価 ： &yen;' + middleDiscount100.toLocaleString() + '.-　　(100円未満切り捨て)');
+												}
+											}
+										}
+										</script>
+									
+										<th:block th:if="${(form.referenceTime == '精算') && (form.middleDiscount == '中割') && (form.unit == '100')}"></th:block>
+									</td>
+								</th:block>
+							</tr>
+							
+							<!-- 日割りの時 -->
+							<tr class="dataline">
+								<th:block th:if="${(form.startPeriodDay == '01') && (form.referenceTime == '精算')}">
+									<td id="none" class="text-left" rowspan="7">
+										<textarea
+											class="textCalculate"
+											name="example"
+											cols="27"
+											rows="2"
+											maxlength="350"
+											wrap="hard"
+											id="limited"
+										></textarea>
+									</td>
+								</th:block>
+								<th:block th:if="${(form.startPeriodDay != '01') && (form.referenceTime == '精算')}">
+									<td id="none" class="text-left">
+										<p>
+											<script th:inline="javascript">
+											if(!workingWeekFirstDayTrue && referenceTime=='精算'){
+												document.write('　　※ 途中入場につき'+ correctSPM + '月分は日割り計算とする。');
+											}
+											</script>
+										</p>
+									</td>
+								</th:block>
+							</tr>
+							
+							<tr class="dataline">
+								<th:block th:if="${(form.startPeriodDay != '01') && (form.referenceTime == '精算')}">
+									<!-- 1日始まりでないかつ精算なら空白行 -->
+									<td id="none" class="text-left" rowspan="6">
+										<textarea
+											class="textMiddleCalculate"
+											name="example"
+											cols="27" rows="6"
+											maxlength="350"
+											wrap="hard"
+											id="limited"
+										></textarea>
+									</td>
+								</th:block>
+							</tr>
+							
+							<tr class="dataline"></tr>
+							
+							<tr class="dataline"></tr>
+							
+							<tr class="dataline"></tr>
+							
+							<th:block th:if="${!((form.startPeriodDay == '01') && (form.referenceTime == '固定'))}">
+								<tr class="dataline">
+									<td style="border-top-style: none; border-bottom-style: none;"></td>
+									<td style="border-top-style: none; border-bottom-style: none;"></td>
+									<td style="border-top-style: none; border-bottom-style: none;"></td>
+								</tr>
+								
+								<tr class="dataline">
+									<td style="border-top-style: none;"></td>
+									<td style="border-top-style: none;"></td>
+									<td style="border-top-style: none;"></td>
+								</tr>
+							</th:block>
+							
+							<tr>
+								<td class="space" rowspan="4" colspan="0">
+									<textarea
+										class="textMiddleCalculate2"
+										name="example"
+										cols="20"
+										maxlength="350"
+										wrap="hard"
+										id="limited"
+									></textarea>
+								</td>
+								<th colspan="2"> 小　計 </th>
+								<td class="text-center2">
+									<!-- 途中入場の場合（1000円未満切り捨て以外) -->
+									<script th:inline="javascript">
+									if((!workingWeekFirstDayTrue) && (thousandCuts ==null)){
+										document.write('&yen;' + subtotal.toLocaleString() + " .-&nbsp;&nbsp;");
+									}
+									</script>
+									<th:block th:if="${!(form.startPeriodDay == '01')&&(form.thousandCuts != '1000')}"></th:block>
+									
+									<!-- 途中入場の場合（1000円未満切り捨て）-->
+									<script th:inline="javascript">
+									if(floorValue){
+										document.write('&yen;' + subtotal1000.toLocaleString() + " .-&nbsp;&nbsp;");
+									}
+									</script>
+									<th:block th:if="${!(form.startPeriodDay == '01') && (form.thousandCuts == '1000')}"></th:block>
+									
+									<!-- 1日からの場合 -->
+									<script th:inline="javascript">
+									if(workingWeekFirstDayTrue){
+										document.write('&yen;' + subtotal.toLocaleString() + " .-&nbsp;&nbsp;");
+									}
+									</script>
+									<th:block th:if="${(form.startPeriodDay == '01')}"></th:block>
+								</td>
+							</tr>
+							
+							<tr>
+								<th colspan="2"></th>
+								<td></td>
+							</tr>
+							
+							<tr>
+								<th colspan="2"> 消費税(10%) </th>
+								<td class="text-center2">
+									<!-- 途中入場の場合（1000円未満切り捨て以外) -->
+									<script th:inline="javascript">
+									if(!workingWeekFirstDayTrue && (thousandCuts ==null)){
+										document.write('&yen;' + tax.toLocaleString() + " .-&nbsp;&nbsp;");
+									}
+									</script>
+									<th:block th:if="${!(form.startPeriodDay == '01') && (form.thousandCuts != '1000')}"></th:block>
+									
+									<!-- 途中入場の場合（1000円未満切り捨て）-->
+									<script th:inline="javascript">
+									if(floorValue){
+										document.write('&yen;' + tax1000.toLocaleString() + " .-&nbsp;&nbsp;");
+									}
+									</script>
+									<th:block th:if="${!(form.startPeriodDay == '01') && (form.thousandCuts == '1000')}"></th:block>
+									
+									<!-- 1日からの場合 -->
+									<script th:inline="javascript">
+									if(workingWeekFirstDayTrue){
+										document.write('&yen;' + tax.toLocaleString() + " .-&nbsp;&nbsp;");
+									}
+									</script>
+									<th:block th:if="${(form.startPeriodDay == '01')}"></th:block>
+								</td>
+							</tr>
+							
+							<tr>
+								<th colspan="2"> 合計金額 </th>
+								<td class="text-center2">
+									<!-- 途中入場の場合（1000円未満切り捨て以外) -->
+									<script th:inline="javascript">
+									if(!workingWeekFirstDayTrue && (thousandCuts ==null)){
+										document.write('&yen;' + total.toLocaleString() + " .-&nbsp;&nbsp;");
+									}
+									</script>
+									<th:block th:if="${!(form.startPeriodDay == '01') && (form.thousandCuts != '1000')}"></th:block>
+									
+									<!-- 途中入場の場合（1000円未満切り捨て）-->
+										<script th:inline="javascript">
+									if(floorValue){
+										document.write('&yen;' + total1000.toLocaleString() + " .-&nbsp;&nbsp;");
+									}
+									</script>
+									<th:block th:if="${!(form.startPeriodDay == '01') && (form.thousandCuts == '1000')}"></th:block>
+									
+									<!-- 1日からの場合 -->
+									<script th:inline="javascript">
+									if(workingWeekFirstDayTrue){
+										document.write('&yen;' + total.toLocaleString() + " .-&nbsp;&nbsp;");
+									}
+									</script>
+									<th:block th:if="${(form.startPeriodDay == '01')}"></th:block>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</section>
+		</div>
+	</div>
+	
+	<script>
+	// 入力できる行数の最大値
+	let MAX_LINE_NUM = 6;
+	
+	// テキストエリアの取得
+	let textarea = document.getElementById("limited");
+	
+	// 入力ごとに呼び出されるイベントを設定
+	textarea.addEventListener("input",function(){
+		// 各行を配列の要素に分ける
+		let lines = textarea.value.split("\n");
+		
+		// 入力行数が制限を超えた場合
+		if(lines.length > MAX_LINE_NUM){
+			var result = "";
+			for(var i = 0; i < MAX_LINE_NUM; i++){
+				result += lines[i] + "\n";
+			}
+			textarea.value = result;
+		}
+	}, false);
+	</script>
+	
+	<script language="JavaScript">
+	var refinfo=document.referrer;
+	
+	if(!refinfo){
+		window.location.href = 'http://localhost:8080/';
+		window.location.href = 'http://192.168.0.103:8080/';
+	}
+	
+	</script>
+</body>
+</html>

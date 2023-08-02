@@ -1,0 +1,414 @@
+@charset "UTF-8";
+
+/* 画面表示サイズ */
+div#Displaysize{
+	width:100%;
+	min-width:960px;
+	min-height:500px;
+}
+
+/* 印刷時の用紙設定 */
+@page{
+	size:A4; /* 用紙サイズ */
+	margin:0; /* ヘッダー・フッダーを無効化 */
+}
+
+/* 要素の初期化 */
+*{
+	margin:0;
+	padding:0;
+	
+	/* デフォルトのフォント */
+	color:000;
+	font-family:"ＭＳ Ｐ明朝";
+	font-size:12pt;
+	font-weight:normal;
+	
+	/* 背景色・背景画像を印刷する（Chromeのみで有効）*/
+	-webkit-print-color-adjust:exact;
+}
+
+/* リスト初期化 */
+ul{
+	list-style:none;
+	padding-left:0;
+}
+
+/* ページレイアウト(section.sheet を１ページとする) */
+.sheet{
+	overflow:hidden;
+	position:relative;
+	box-sizing:border-box;
+	page-break-after:always;
+	
+	/* 用紙サイズ A4 */
+	height:297mm;
+	width:210mm;
+	
+	/* 余白サイズ */
+	padding-top:22mm;
+	padding-left:23mm;
+	padding-right:23mm;
+}
+
+/* プレビュー用のスタイル */
+@media screen{
+	body{
+		background: #e0e0e0;
+	}
+	
+	.sheet{
+	background: white; /* 背景を白く */
+	box-shadow:0 0.5mm 2mm rgba(0, 0, 0, 0.3); /* ドロップシャドウ */
+	margin:5mm auto;
+	}
+}
+
+/* 汎用クラス */
+.text-left{
+	text-align:left;
+}
+
+.text-center{
+	text-align:center;
+}
+
+.text-right{
+	text-align:right;
+}
+
+.clear-element{
+	clear:both;
+}
+
+/* 各位置の指定 */
+/* 日付とNo */
+div.line1{
+	height:17mm;
+	text-align:right;
+	font-size:9pt;
+}
+
+div.line1 p.shadow{
+	text-align:right;
+	font-size:9pt;
+	text-shadow:0.1px 0.5px 0 #000;
+}
+
+/* タイトル */
+div.line2{
+	height:20mm;
+}
+
+/* 得意先 */
+div.line3{
+	height:12mm;
+	text-shadow:0.1px 0.5px 0 #000;
+	letter-spacing:1px;
+}
+
+/* 自社情報 */
+div.line4{
+	height:32mm;
+	text-align:right;
+	line-height:18px
+}
+
+div.line4 div.col_1{
+	display:inline-block;
+	text-align:left;
+	line-height:22px;
+}
+
+/* 印鑑の表示 */
+img.inkan{
+	position:absolute;
+	z-index:1;
+	top:70.8mm;
+	left:159mm;
+	height:24.5mm;
+	width:24.5mm;
+}
+
+/* 印鑑の表示(登録番号を記載する用) */
+img.inkan2{
+	position:absolute;
+	z-index:1;
+	top:75.2mm;
+	left:159mm;
+	height:24.5mm;
+	width:24.5mm;
+}
+
+/* 記の表示 */
+div.line5{
+	height:11mm;
+	text-align:center;
+	text-shadow:0.1px 0.5px 0 #000;
+	letter-spacing:1px;
+}
+
+div.line5 p{
+	font-size:17px;
+	font-weight:bolder;
+}
+
+/* 請求金額の表示 */
+div.line6{
+	height:15mm;
+	float:center;
+}
+
+/* 検収年月の表示 */
+div.line7{
+	height:5mm;
+}
+
+/* 請求書テーブルの表示 */
+div.line8{
+	height:106mm;
+}
+
+/* お支払日の表示 */
+div.line9{
+	height:8mm;
+}
+
+div.line10{
+	height:6.5mm;
+}
+
+/* 個別のスタイル指定 */
+kuuhaku{
+	line-height:2;
+}
+
+/* タイトル */
+h1{
+	background: #DDDDDD;
+	font-size:21px;
+	font-weight:normal;
+	letter-spacing:0px;
+	color: #000;
+}
+
+/* 自社名 */
+h2{
+	font-size:21px;
+	text-shadow:0.1px 0.5px 0 #000;
+	letter-spacing:1px;
+}
+
+h2.customer_name{
+	border-bottom:1px solid black;
+	display:inline-block;
+}
+
+/* テーブル共通 */
+table,th,td{
+	border: 1px #000 solid;
+	border-collapse:collapse;
+	border-spacing:0;
+}
+
+table th{
+	background: #DDDDDD;
+	font-weight:normal;
+	color: #000;
+	height:6.7mm;
+}
+
+table td{
+	text-align:right;
+	height:6.7mm;
+}
+
+/* テーブル ご請求金額 */
+table.summary th{
+	background: #fff;
+	font-size:13pt;
+	width:40mm;
+	color: #000;
+	border-top:3px solid black;
+	border-left:3px solid black;
+	border-bottom:3px solid black;
+	border-right:3px solid black;
+}
+
+table.summary td{
+	font-size:13pt;
+	width:55mm;
+	text-align:center;
+	border-top:3px solid black;
+	border-bottom:3px solid black;
+	border-right:3px solid black;
+}
+
+/* テーブル 請求書 */
+table.seikixyuu{
+	width:100%;
+}
+
+table.seikixyuu tr{
+	height:6.7mm;
+}
+
+table.seikixyuu th.contents{
+	width:58%;
+	border-top:3px solid black;
+	border-left:3px solid black;
+	border-bottom:3px solid black;
+	border-right:3px solid black;
+	text-align:center;
+}
+
+table.seikixyuu th.quantity{
+	width:8%;
+	border-top:3px solid black;
+	border-bottom:3px solid black;
+	text-align:center;
+}
+
+table.seikixyuu th.unit{
+	width:6%;
+	border-top:3px solid black;
+	border-left:3px solid black;
+	border-bottom:3px solid black;
+	border-right:3px solid black;
+	text-align:center;
+}
+
+table.seikixyuu th.unit_price{
+	width:12%;
+	border-top:3px solid black;
+	border-bottom:3px solid black;
+	text-align:center;
+}
+
+table.seikixyuu th.total{
+	width:16%;
+	border-top:3px solid black;
+	border-left:3px solid black;
+	border-bottom:3px solid black;
+	border-right:3px solid black;
+	text-align:center;
+}
+
+/* 請求額の色付け */
+#iro{
+	background: #DDDDDD;
+}
+
+table.seikixyuu tr.dataline:nth-child(odd) td{
+	background-color: #fff;
+}
+
+table.seikixyuu tr.dataline:nth-child(even) td{
+	background-color: #fff;
+}
+
+/* 全て枠線を太く+字は真ん中 */
+.A{
+	border-top:3px solid black;
+	border-left:3px solid black;
+	border-bottom:3px solid black;
+	border-right:3px solid black;
+	text-align:center;
+}
+
+/* 左だけ枠線を太く+左寄せ */
+.B{
+	border-left:3px solid black;
+	text-align:left;
+	vertical-align:bottom;
+}
+
+.B1{
+	border-left:3px solid black;
+	border-left:3px solid black;
+	text-align:left;
+	vertical-align:bottom;
+}
+
+/* 右だけ枠線を太く */
+.C{
+	border-right:3px solid black;
+	text-align:right;
+	vertical-align:bottom;
+}
+
+/* 左と下の枠線を太く */
+.D{
+	border-left:3px solid black;
+	border-bottom:3px solid black;
+	text-align:left;
+}
+
+/* 下だけ枠線を太く */
+.E{
+	border-bottom:3px solid black;
+}
+
+/* 右と下の枠線を太く */
+.F{
+	border-right:3px solid black;
+	border-bottom:3px solid black;
+}
+
+/* 全て枠線を太く+右寄せ*/
+.G{
+	border-top:3px solid black;
+	border-left:3px solid black;
+	border-bottom:3px solid black;
+	border-right:3px solid black;
+	text-align:right;
+}
+
+/* 上下の枠線を太く */
+.H{
+	border-top:3px solid black;
+	border-bottom:3px solid black;
+	text-align:center;
+}
+
+/* 右枠0px */
+.J{
+	border-right:0px none;
+}
+
+#J1{
+	border-right:1px solid black;
+}
+
+/* 印刷設定 */
+form.insatu{
+	text-align:center;
+	font-size:1.5rem;
+}
+
+/* numberの矢印を消す */
+/* Chrome, Safari, Edge */
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{
+	margin:0;
+	-webkit-appearance:none;
+}
+
+input[type="text"]{
+	width: 99%;
+	-moz-box-sizing:border-box;
+	-webkit-box-sizing:border-box;
+	box-sizing:border-box;
+}
+
+.max-length-warning{
+	color: red;
+}
+
+div#kuuhaku{
+	line-height:1.7;
+}
+
+span{
+	display:inline-block;
+	width:14em;
+}

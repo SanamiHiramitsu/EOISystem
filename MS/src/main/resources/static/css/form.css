@@ -1,0 +1,97 @@
+@charset "UTF-8";
+
+/* 各入力フォームの指定 */
+.form{
+	width:220px;
+	height:20px;
+}
+
+.form2{
+	width:100px;
+	height:20px;
+}
+
+.form3{
+	width:47px;
+	height:20px;
+}
+
+.form4{
+	width:140px;
+	height:20px;
+}
+
+.form5{
+	width:74px;
+	height:20px;
+}
+
+.form6{
+	width:300px;
+	height:20px;
+}
+
+/* 請求データ作成 枝番 */
+.form7{
+	width:48px;
+	height:20px;
+}
+
+/* 請求データ作成 実働日数*/
+.form8{
+	width:265px;
+	height:20px;
+}
+
+/* 請求データ作成 実働時間*/
+.form9{
+	width:250px;
+	height:20px;
+}
+
+/* 基準時間 */
+.form10{
+	width:63px;
+	height:20px;
+}
+
+/* 中割計算 */
+.form11{
+	width:10px;
+	height:20px;
+}
+
+/* お支払い条件 手動 月 */
+.form12{
+	width:60px;
+	height:20px;
+}
+
+/* お支払い条件 手動 日 */
+.form13{
+	width:20px;
+	height:15px;
+}
+
+/* 更新枝番 */
+.form14{
+	width:55px;
+	height:25px;
+}
+
+/* 削除枝番 */
+.form15{
+	width:49px;
+	height:20px;
+}
+
+/* 単価 */
+.form16{
+	width:200px;
+	height:20px;
+}
+
+/* 登録・更新・作成完了画面のコメント表示 */
+.center{
+	text-align:center;
+}

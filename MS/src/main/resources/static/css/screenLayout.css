@@ -1,0 +1,97 @@
+@charset "UTF-8";
+
+/* 画面表示サイズ */
+div#Displaysize{
+	width:100%;
+	min-width:960px; 
+	min-height:500px; 
+}
+
+
+/* 画面全体のデザイン */
+body{
+	margin: 0;
+	font-size:15px;
+	text-align:center;
+}
+
+
+/* タイトル・トップボタン */
+.box{
+	width:100%; 
+	border-bottom: 1px solid #000000; 
+	text-align:center; 
+}
+
+
+/* タイトルデザイン */
+ h2{ 
+	font-size:23px; 
+	text-align:center;     
+ } 
+
+
+/* 一覧表の設定 */
+table{
+	border-spacing: 0;
+	border-collapse: collapse;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+table th,table td{
+	border-top: 1px solid #000000;
+	border-left: 1px solid #000000;
+}
+
+table th{
+	width: 153px;
+	background: #7D7D7D;
+	color: #FFFFFF;
+}
+
+.period{
+	width: 270px;
+}
+
+.company{
+	width: 250px;
+}
+
+.project{
+	width: 250px;
+}
+
+.name{
+	width: 100px;
+}
+
+.restore{
+	width: 100px;
+}
+
+.delete{
+	width: 100px;
+}
+
+table td{
+	background: #EEEEEE;
+	color: #000000;
+	text-align: center;
+}
+
+table tr:nth-child(even) td{
+	background: #C2C2C2;
+}
+
+table th:last-child,table td:last-child{
+	border-right: 1px solid #000000;
+}
+
+table tr:last-child th,table tr:last-child td{
+	border-bottom: 1px solid #000000;
+}
+
+table tr:not(:first-child) th,table tr:not(:first-child) td{
+	border-top:none;
+}

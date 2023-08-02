@@ -1,0 +1,3341 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<link th:href="@{/css/invoiceDetail.css}" rel="stylesheet"/>
+	<!-- <link rel="stylesheet" type="text/css" th:href="@{/invoiceDetail.css}"/> -->
+	<title>請求書</title>
+
+	<!-- 画面表示サイズ -->
+	<style type="text/css">
+	body{
+		zoom: 95%; /* 表示サイズの設定 */
+	}
+	</style>
+	
+	<!-- 印刷ボタン -->
+	<style type="text/css">
+	@media print{
+		.print_button{
+			display: none;
+		}/* 印刷時ボタンは非表示 */
+		body{
+			zoom: 149.1%;
+		} /* 149%で印刷 */
+	}
+	</style>
+</head>
+<body onload=calc()>
+	<!-- 画面サイズ指定 -->
+	<div id="Displaysize">
+		<script th:inline="javascript">
+		var beginDate = new Date(/*[[${form.acceptanceDate01}]]*/ '1');
+		var endDate = new Date(/*[[${form.acceptanceDateLastday}]]*/ '2');
+		
+		//開始と終了日付のタイムスタンプ
+		var beginTime = beginDate.getTime();
+		var endTime = endDate.getTime();
+		
+		//時間差を算出
+		var diff = endTime - beginTime;
+		
+		//時間差をミリ秒単位を日単位に変換し（切り捨て）、1日分を加算
+		var term = Math.floor(diff / (24 * 60 * 60 * 1000)) + 1;
+		
+		//定休日となる曜日の設定
+		var regularDayOff = [0,6];
+		
+		//一週間の定休日の数
+		var lenDayOff = regularDayOff.length;
+		
+		//期間に入る週の数、7で割って切り捨てて算出する
+		var weeks = Math.floor(term / 7);
+		
+		//週の数から、その期間の定休日の休日数を算出する
+		var dayOffs = weeks * lenDayOff;
+		
+		//週の数に入らない余りの日数
+		var remainderDays = term % 7;
+		
+		//余りの日の処理
+		if(remainderDays>0){
+			/*
+			余りの日がある場合、開始日付から余りの日数だけ曜日が定休日かの判定を行う
+			開始日付の曜日数値の取得
+			*/
+			var beginDay = beginDate.getDay();//0~6の曜日数値
+			
+			for(var i = 0; i < remainderDays; i++){
+				/*
+				曜日数値に余りの日数を加算していき、7で割った余りの曜日数値が
+				定休日の配列に含まれるか
+				*/
+				if(regularDayOff.indexOf((beginDay + i) % 7) != -1){
+					//定休日の配列に含まれる場合、休日数に加算する
+					dayOffs++;
+				}
+			}
+		};
+		
+		//祝日の設定
+		var holidayDates = [
+			//2020年
+			'2020/01/01','2020/01/02','2020/01/03',
+			'2020/01/13','2020/02/11','2020/02/23','2020/02/24','2020/03/20',
+			'2020/04/29','2020/05/03','2020/05/04','2020/05/05','2020/05/06','2020/07/23',
+			'2020/07/24','2020/08/10','2020/09/21','2020/09/22','2020/11/03','2020/11/23'
+			
+			//2021年
+			,'2021/01/01','2021/01/02','2021/01/03',
+			,'2021/01/11','2021/02/11','2021/02/23','2021/03/20','2021/04/29'
+			,'2021/05/03','2021/05/04','2021/05/05','2021/07/22','2021/07/23','2021/08/09'
+			,'2021/09/20','2021/09/23','2021/11/03','2021/11/23'
+			
+			//2022年
+			,'2022/01/01','2022/01/02','2022/01/03',
+			,'2022/01/10','2022/02/11','2022/02/23'
+			,'2022/03/21','2022/04/29','2022/05/03','2022/05/04','2022/05/05','2022/07/18'
+			,'2022/08/11','2022/09/19','2022/09/23','2022/10/10','2022/11/03','2022/11/23'
+			
+			//2023年
+			,'2023/01/01','2023/01/02','2023/01/03',
+			,'2023/01/09','2023/02/11','2023/02/23'
+			,'2023/03/21','2023/04/29','2023/05/03','2023/05/04','2023/05/05','2023/07/17'
+			,'2023/08/11','2023/09/18','2023/09/23','2023/10/09','2023/11/03','2023/11/23'
+			
+			//2024年
+			,'2024/01/01','2024/01/02','2024/01/03',
+			,'2024/01/08','2024/02/11','2024/02/12'
+			,'2024/02/23','2024/03/20','2024/04/29','2024/05/03','2024/05/04','2024/05/05'
+			,'2024/05/06','2024/07/15','2024/08/11','2024/08/12','2024/09/16','2024/09/22'
+			,'2024/09/23','2024/10/14','2024/11/03','2024/11/04','2024/11/23'
+			
+			//2025年
+			,'2025/01/01','2025/01/02','2025/01/03',
+			,'2025/01/13','2025/02/11','2025/02/23'
+			,'2025/02/24','2025/03/20','2025/04/29','2025/05/03','2025/05/04','2025/05/05'
+			,'2025/05/06','2025/07/21','2025/08/11','2025/09/15','2025/09/23','2025/10/13'
+			,'2025/11/03','2025/11/23','2025/11/24'
+			
+			//2026年
+			,'2026/01/01','2026/01/02','2026/01/03',
+			,'2026/01/12','2026/02/11','2026/02/23'
+			,'2026/03/20','2026/04/29','2026/05/03','2026/05/04','2026/05/05','2026/05/06'
+			,'2026/07/20','2026/08/11','2026/09/21','2026/09/22','2026/09/23','2026/10/12'
+			,'2026/11/03','2026/11/23'
+			
+			//2027年
+			,'2027/01/01','2027/01/02','2027/01/03',
+			,'2027/01/11','2027/02/11','2027/02/23'
+			,'2027/03/21','2027/03/22','2027/04/29','2027/05/03','2027/05/04','2027/05/05'
+			,'2027/07/19','2027/08/11','2027/09/20','2027/09/23','2027/10/11','2027/11/03'
+			,'2027/11/23'
+			
+			//2028年
+			,'2028/01/01','2028/01/02','2028/01/03',
+			,'2028/01/10','2028/02/11','2028/02/23'
+			,'2028/03/20','2028/04/29','2028/05/03','2028/05/04','2028/05/05','2028/07/17'
+			,'2028/08/11','2028/09/18','2028/09/22','2028/10/09','2028/11/03','2028/11/23'
+			
+			//2029年
+			,'2029/01/01','2029/01/02','2029/01/03',
+			,'2029/01/08','2029/02/11' ,'2029/02/12'
+			,'2029/02/23','2029/03/20','2029/04/29','2029/04/30','2029/05/03','2029/05/04'
+			,'2029/05/05','2029/07/16','2029/08/11','2029/09/17','2029/09/23','2029/09/24'
+			,'2029/10/08','2029/11/03','2029/11/23'
+			
+			//2030年
+			,'2030/01/01','2030/01/02','2030/01/03',
+			,'2030/01/14','2030/02/11','2030/02/23'
+			,'2030/03/20','2030/04/29','2030/05/03','2030/05/04','2030/05/05','2030/05/06'
+			,'2030/07/15','2030/08/11','2030/08/12','2030/09/16','2030/09/23','2030/10/14'
+			,'2030/11/03','2030/11/04','2030/11/23'
+			
+			//2031年
+			,'2031/01/01','2031/01/02','2031/01/03',
+			,'2031/01/13','2031/02/11','2031/02/23'
+			,'2031/02/24','2031/03/21','2031/04/29','2031/05/03','2031/05/04','2031/05/05'
+			,'2031/05/06','2031/07/21','2031/08/11','2031/09/15','2031/09/23','2031/10/13'
+			,'2031/11/03','2031/11/23','2031/11/24'
+		];
+		
+		//祝日をソートする
+		holidayDates.sort();
+		//祝日のタイムスタンプの配列
+		var holidayTime=[];
+		for(var i = 0; i < holidayDates.length; i++){
+			//日付オブジェクトを設定する
+			var dateObj = new Date(holidayDates[i]);
+			if(regularDayOff.indexOf(dateObj.getDay())==-1){
+			
+			//定休日の曜日に存在しない場合、祝日のタイムスタンプの配列に追加する
+				holidayTime.push(dateObj.getTime());
+			}
+		}
+		
+		//祝日のカウント用
+		var holidays=0;
+		//開始日付より大きいかのフラグ
+		var flgBegin=false;
+		for(var i = 0; i < holidayTime.length; i++){
+			//開始日付のフラグにより処理を変える
+			if(flgBegin == false){
+				//開始日付より大きくない状態
+				if(beginTime <= holidayTime[i]){
+					//祝日が開始日付より大きい場合、フラグを設定する
+					flgBegin=true;
+					if(holidayTime[i] <= endTime){
+						//終了日付より小さい場合、対象期間の範囲内なので加算する
+						holidays++;
+					}else{
+						//終了日付より大きい場合、対象期間の範囲外なのでループを抜け出す
+						break;
+					}
+				}
+			}else{
+				//開始日付より大きい状態
+				if(holidayTime[i] <= endTime){
+					//終了日付より小さい場合、対象期間の範囲内なので加算する
+					holidays++;
+				}else{
+					//終了日付より大きい場合、対象期間の範囲外なのでループを抜け出す
+					break;
+				}
+			}
+		}
+		
+		function workingWeekFirstDays(begin){
+			//営業開始が1日から始まらないため、例外として開始日扱いする月日
+			//1/1～1/3は休日
+			var workingWeekDay=[
+				"2020/1/6","2020/2/3","2020/3/2","2020/8/3","2020/11/2",
+				"2021/1/4","2021/5/6","2021/8/2",
+				"2022/1/4","2022/5/2","2022/10/3",
+				"2023/1/4","2023/4/3","2023/7/3","2023/10/2",
+				"2024/1/4","2024/6/3","2024/9/2","2024/12/2",
+				"2025/1/6","2025/2/2","2025/3/2","2025/6/2","2025/11/4",
+				"2026/1/5","2026/2/2","2026/3/2","2026/8/3","2026/11/2",
+				"2027/1/4","2027/5/6","2027/8/2",
+				"2028/1/4","2028/4/3","2028/7/3","2028/10/2",
+				"2029/1/4","2029/4/2","2029/7/2","2029/9/3","2029/12/3",
+				"2030/1/4","2030/6/3","2030/9/2","2030/12/2",
+				"2031/1/6","2031/2/3","2031/3/3","2031/6/2","2031/11/4"
+			];
+			var beginDate = new Date(begin).toLocaleDateString();
+			for(var i=0;i<workingWeekDay.length;i++){
+				//日付オブジェクトを設定する
+				var dateObj = new Date(workingWeekDay[i]).toLocaleDateString();
+				//開始日が上の日付に該当するなら日割りとして扱わない
+				if(beginDate == dateObj){
+					return true;
+				}
+			}
+			return false;
+		}
+		/*データベースで使われる変数をJS変数化*/
+		var startPeriod = /*[[${form.startPeriod}]]*/'1';
+		var startPeriodLastday = /*[[${form.startPeriodLastday}]]*/ '2';
+		
+		//期間開始日
+		var startPeriodDay=/*[[${form.startPeriodDay}]]*/ '2';
+		var startPeriodDay01=/*[[${form.startPeriodDay01}]]*/ '3';
+		var payment=/*[[${form.payment}]]*/'4';
+		var workingWeekFirstDay = workingWeekFirstDays(startPeriod);
+		
+		//作業開始日が営業開始日かどうか
+		var workingWeekFirstDayTrue = startPeriodDay == '01'||workingWeekFirstDay;
+		
+		//稼働日
+		var businessDay = term - dayOffs - holidays;
+		
+		//実働日数
+		var workingDay = /*[[${form.workingDay}]]*/ '3';
+		
+		//数量
+		var quantity = Math.floor((workingDay / businessDay) * 100) / 100;
+		
+		//期間開始月
+		
+		var startPeriodMonth = /*[[${form.startPeriodMonth}]]*/ '4';
+		
+		//検収月
+		var acceptanceDateMonth = /*[[${form.acceptanceDateMonth}]]*/ '5';
+		
+		//単価
+		var value = /*[[${form.intValue}]]*/ '6';
+		
+		//中割
+		var middleDiscount=/*[[${form.middleDiscount}]]*/ '6';
+		
+		//小計
+		var subtotal = Math.floor(quantity * value);
+		
+		//消費
+		var tax =  Math.floor(quantity * value / 10);
+		
+		//請求額
+		var total = Math.floor(subtotal + tax);
+		//消費税(数量が[1]の時)
+		var salestax = Math.floor(value / 10);
+		//請求額(数量が[1]の時)
+		var sumtotal = Math.floor(value + salestax);
+		//時間幅の選択(固定or精算)
+		var referenceTime = /*[[${form.referenceTime}]]*/ '2';
+		//中割の選択(中割 or Null)
+		var middleDiscount2 = /*[[${form.middleDiscount}]]*/ '2';
+		//期間開始日の0を削除
+		var correctSPM = /*[[${form.correctSPM}]]*/ '2';
+		//切り捨て単位
+		var unit = /*[[${form.unit}]]*/ '2';
+		//1000円未満切り捨て
+		var thousandCuts =/*[[${form.thousandCuts}]]*/'7';
+		
+		//単価(1000円未満切り捨て)
+		var value1000 = Math.floor(value / 1000) * 1000;
+		
+		//小計
+		var subtotal1000 = Math.floor(quantity * value1000);
+		
+		//実働時間
+		var actualWorkingHours = Math.floor((/*[[${form.actualWorkingHours}]]*/'6') * 100) / 100;  //実働時間
+		var upperLimitTime = /*[[${form.upperLimitTime}]]*/ '2'; //上限時間
+		var lowerLimitTime = /*[[${form.lowerLimitTime}]]*/ '3'; //下限時間
+		
+		//途中入場の上限時間
+		var upperLimitTimeForAdmissionOnTheWay = Math.round(upperLimitTime * workingDay / businessDay);
+		//途中入場の下限時間
+		var lowerLimitTimeForAdmissionOnTheWay = Math.round(lowerLimitTime * workingDay / businessDay);
+		
+		//途中入場の上限時間(1000円未満切り捨ての場合、小数第一位未満切り捨て)
+		var upperLimitTimeForAdmissionOnTheWay1000 =
+			Math.floor(upperLimitTime * quantity*10)/10;
+		//途中入場の下限時間(1000円未満切り捨ての場合、小数第一位未満切り捨て)
+		var lowerLimitTimeForAdmissionOnTheWay1000 =
+			Math.floor(lowerLimitTime * quantity*10)/10;
+		
+		//超過単価(10円未満切り捨て)
+		var excessUnitPrice10 =
+			Math.floor((value / upperLimitTime) / 10) * 10;
+		//超過単価(100円未満切り捨て)
+		var excessUnitPrice100 =
+			Math.floor((value / upperLimitTime) / 100) * 100;
+		//超過単価(1000円未満切り捨て)
+		var excessUnitPrice1000 =
+			Math.floor((value1000 / upperLimitTime) / 10) * 10;
+		
+		//控除単価(10円未満切り捨て)
+		var deductionUnitPrice10 =
+			Math.floor((value / lowerLimitTime) / 10) * 10;
+		//控除単価(100円未満切り捨て)
+		var deductionUnitPrice100 =
+			Math.floor((value / lowerLimitTime) / 100) * 100;
+		//控除単価(1000円未満切り捨て)
+		var deductionUnitPrice1000 =
+			Math.floor((value1000 / lowerLimitTime) / 10) * 10;
+		
+		//中割単価(10円未満切り捨て)
+		var middleDiscount10 = Math.floor((value / ((upperLimitTime + lowerLimitTime) / 2)) / 10) * 10;
+		//中割単価(100円未満切り捨て)
+		var middleDiscount100 = Math.floor((value / ((upperLimitTime + lowerLimitTime) / 2)) / 100) * 100;
+		//中割単価(1000円未満切り捨て)
+		var middleDiscount1000 = Math.floor(
+			(value1000 / ((upperLimitTime + lowerLimitTime) / 2)) / 10) * 10;
+		
+		//超過時間
+		var overtime = Math.floor((actualWorkingHours * 100) -
+			(upperLimitTime * 100)) / 100;
+		//下回った時間
+		var lessTime = Math.floor((actualWorkingHours * 100) -
+			(lowerLimitTime * 100)) / 100;
+		
+		//途中入場の超過時間
+		var overtimeForAdmissionOnTheWay = Math.floor(
+			(actualWorkingHours * 100) -
+			(upperLimitTimeForAdmissionOnTheWay * 100)) / 100;
+		//途中入場の下回った時間
+		var lessTimeForAdmissionOnTheWay = Math.floor(
+			(actualWorkingHours * 100) -
+			(lowerLimitTimeForAdmissionOnTheWay * 100)) /100;
+			
+		//途中入場の超過時間（1000円未満切捨ての場合）
+		var overtimeForAdmissionOnTheWay1000 = Math.floor(
+			(actualWorkingHours * 100) -
+			(upperLimitTimeForAdmissionOnTheWay1000 * 1000)) /1000;
+		//途中入場の下回った時間（1000円未満切捨ての場合）
+		var lessTimeForAdmissionOnTheWay1000 = Math.floor(
+			(actualWorkingHours * 100) -
+			(lowerLimitTimeForAdmissionOnTheWay1000 * 100)) /100;
+		
+		//超過金額(10円未満切り捨て)
+		var excessAmount10 = Math.floor(excessUnitPrice10 * overtime);
+		//超過金額(100円未満切り捨て)
+		var excessAmount100 = Math.floor(excessUnitPrice100 * overtime);
+		//超過金額(1000円未満切り捨て)
+		var excessAmount1000 = Math.floor(excessUnitPrice1000 * overtime);
+		
+		//控除金額(10円未満切り捨て)
+		var deductionAmount10 = Math.trunc(lessTime * deductionUnitPrice10);
+		//控除金額(100円未満切り捨て)
+		var deductionAmount100 = Math.trunc(lessTime * deductionUnitPrice100);
+		//控除金額(1000円未満切り捨て)
+		var deductionAmount1000 = Math.trunc(lessTime * deductionUnitPrice1000);
+		
+		//途中入場の超過金額(10円未満切り捨て)
+		var excessAmountForAdmissionOnTheWay10 =
+			Math.floor(excessUnitPrice10 * overtimeForAdmissionOnTheWay);
+		//途中入場の超過金額(100円未満切り捨て)
+		var excessAmountForAdmissionOnTheWay100 =
+			Math.floor(excessUnitPrice100 * overtimeForAdmissionOnTheWay);
+		//途中入場の超過金額(1000円未満切り捨て)
+		var excessAmountForAdmissionOnTheWay1000 =
+			Math.floor(excessUnitPrice1000 * overtimeForAdmissionOnTheWay);
+		
+		//途中入場の控除金額(10円未満切り捨て)
+		var deductionAmountForAdmissionOnTheWay10 =
+			Math.trunc(lessTimeForAdmissionOnTheWay * deductionUnitPrice10);
+		//途中入場の控除金額(100円未満切り捨て)
+		var deductionAmountForAdmissionOnTheWay100 =
+			Math.trunc(lessTimeForAdmissionOnTheWay * deductionUnitPrice100);
+		//途中入場の控除金額(1000円未満切り捨て)
+		var deductionAmountForAdmissionOnTheWay1000 =
+			Math.trunc(lessTimeForAdmissionOnTheWay * deductionUnitPrice1000);
+		
+		//中割金額(超過)(10円未満切り捨て)
+		var excessedMiddleDiscountAmount10 =
+			Math.floor(middleDiscount10 * overtime);
+		//中割金額(超過)(100円未満切り捨て)
+		var excessedMiddleDiscountAmount100 =
+			Math.floor(middleDiscount100 * overtime);
+		//中割金額(超過)(1000円未満切り捨て)
+		var excessedMiddleDiscountAmount1000 =
+			Math.floor(middleDiscount1000 * overtime);
+		
+		//中割金額(下回る)(10円未満切り捨て)
+		var lowerMiddleDiscountAmount10 =
+			Math.trunc(middleDiscount10 * lessTime);
+		//中割金額(下回る)(100円未満切り捨て)
+		var lowerMiddleDiscountAmount100 =
+			Math.trunc(middleDiscount100 * lessTime);
+		//中割金額(下回る)(1000円未満切り捨て)
+		var lowerMiddleDiscountAmount1000 =
+			Math.trunc(middleDiscount1000 * lessTime);
+		
+		//途中入場の中割金額(超過)(10円未満切り捨て)
+		var excessedMiddleDiscountAmountForAdmissionOnTheWay10 =
+			Math.floor(middleDiscount10 * overtimeForAdmissionOnTheWay);
+		//途中入場の中割金額(超過)(100円未満切り捨て)
+		var excessedMiddleDiscountAmountForAdmissionOnTheWay100 =
+			Math.floor(middleDiscount100 * overtimeForAdmissionOnTheWay);
+		//途中入場の中割金額(超過)(1000円未満切り捨て)
+		var excessedMiddleDiscountAmountForAdmissionOnTheWay1000 =
+			Math.floor(middleDiscount1000 * overtimeForAdmissionOnTheWay);
+		
+		//途中入場の中割金額(下回る)(10円未満切り捨て)
+		var lowerMiddleDiscountAmountForAdmissionOnTheWay10 =
+			Math.trunc(middleDiscount10 * lessTimeForAdmissionOnTheWay);
+		//途中入場の中割金額(下回る)(100円未満切り捨て)
+		var lowerMiddleDiscountAmountForAdmissionOnTheWay100 =
+			Math.trunc(middleDiscount100 * lessTimeForAdmissionOnTheWay);
+		//途中入場の中割金額(下回る)(1000円未満切り捨て)
+		var lowerMiddleDiscountAmountForAdmissionOnTheWay1000 =
+			Math.trunc(middleDiscount1000 * lessTimeForAdmissionOnTheWay);
+		
+		var BillingAmount=0;
+		//請求額再計算処理
+		
+		function calc(){
+			//立替交通費の入力値
+			var Prepaid = eval(document.Form2.tatekae.value);
+			//立替交通費+小計+消費税
+			var Recalculation = total + Prepaid;
+			//立替交通費+小計+消費税(数量[1]の時)
+			var Recalculation2 = sumtotal + Prepaid;
+			
+			//固定かつ1日から入場の場合(小計+消費税)
+			if(referenceTime == '固定'){
+				//1日
+				if((workingWeekFirstDayTrue) || startPeriodMonth != acceptanceDateMonth){
+					//立替なし
+					if(Prepaid == null){//3
+						BillingAmount=sumtotal;
+					}
+					//立替あり
+					else{//4
+						BillingAmount=Recalculation2;
+					}
+				}
+				
+				//途中
+				else if(!workingWeekFirstDayTrue && startPeriodMonth == acceptanceDateMonth){
+					//月単価1000円未満切り捨て以外
+					if(thousandCuts != '1000'){
+						//立替なし
+						if(Prepaid == null){//1
+							BillingAmount=total;
+						}
+						//立替あり
+						else{//2
+							BillingAmount=Recalculation;
+						}
+					}
+					
+					//月単価1000円未満切り捨て
+					else if(thousandCuts == '1000'){
+						//立替なし
+						if(Prepaid == null){
+							BillingAmount = Math.floor((subtotal1000) /10) + subtotal1000;
+						}
+						//立替あり
+						else{
+							BillingAmount = Math.floor((subtotal1000) /10) + subtotal1000 + Prepaid;
+						}
+					}
+				}
+			}
+			
+			//精算
+			else if(referenceTime == '精算'){
+				//中割なし
+				if(middleDiscount2 != '中割'){
+					//一日(作業開始日が営業開始日か暫定開始日と同じであるかつ作業開始月が検収月と同じである
+					//または作業開始月が検収月と違う時)
+					if(((workingWeekFirstDayTrue) && startPeriodMonth == acceptanceDateMonth) || startPeriodMonth != acceptanceDateMonth){
+						//基準
+						if(actualWorkingHours >= lowerLimitTime && actualWorkingHours <= upperLimitTime){
+							//立替なし
+							if(Prepaid == null){
+								BillingAmount = Math.floor(value /10) + value;
+							}
+							//立替あり
+							else{
+								BillingAmount = Math.floor(value /10) + value + Prepaid;
+							}
+						}
+						
+						//超過
+						else if(actualWorkingHours > upperLimitTime){
+							//超過単価10円未満切り捨て
+							if(unit == '10'){
+								//立替なし
+								if(Prepaid == null){
+									BillingAmount = Math.floor((excessAmount10 + value) /10) + excessAmount10 + value;
+								}
+								//立替あり
+								else{
+									BillingAmount = Math.floor((excessAmount10 + value) /10) + excessAmount10 + value + Prepaid;
+								}
+							}
+							
+							//超過単価100円未満切り捨て
+							if(unit == '100'){
+								//立替なし
+								if(Prepaid == null){
+									BillingAmount = Math.floor((excessAmount100 + value) /10) + excessAmount100 + value;
+								}
+								//立替あり
+								else{
+									BillingAmount = Math.floor((excessAmount100 + value) /10) + excessAmount100 + value + Prepaid;
+								}
+							}
+						}
+						
+						//控除
+						else if(actualWorkingHours < lowerLimitTime){
+							//控除単価10円未満切り捨て
+							if(unit == '10'){
+								//立替なし
+								if(Prepaid == null){
+									BillingAmount = Math.floor((deductionAmount10 + value) /10) + deductionAmount10 + value;
+								}
+								//立替あり
+								else{
+									BillingAmount = Math.floor((deductionAmount10 + value) /10) + deductionAmount10 + value + Prepaid;
+								}
+							}
+							
+							//控除単価100円未満切り捨て
+							if(unit == '100'){
+								//立替なし
+								if(Prepaid == null){
+									BillingAmount = Math.floor((deductionAmount100 + value) /10) + deductionAmount100 + value;
+								}
+								//立替あり
+								else{
+									BillingAmount = Math.floor((deductionAmount100 + value) /10) + deductionAmount100 + value + Prepaid;
+								}
+							}
+						}
+					}
+					
+					//途中
+					else if(!workingWeekFirstDayTrue && startPeriodMonth == acceptanceDateMonth){
+						//基準
+						if(actualWorkingHours >= lowerLimitTimeForAdmissionOnTheWay &&
+							actualWorkingHours <= upperLimitTimeForAdmissionOnTheWay){
+							//月単価1000円未満切り捨て以外
+							if(thousandCuts != '1000'){
+								//立替なし
+								if(Prepaid == null){
+									BillingAmount = total;
+								}
+								//立替あり
+								else{
+									BillingAmount = Recalculation;
+								}
+							}
+							
+							//月単価1000円未満切り捨て
+							else if(thousandCuts == '1000'){
+								//立替なし
+								if(Prepaid == null){
+									BillingAmount = Math.floor((subtotal1000) /10) + subtotal1000;
+								}
+								//立替あり
+								else{
+									BillingAmount = Math.floor((subtotal1000) /10) + subtotal1000 + Prepaid;
+								}
+							}
+						}
+						
+						//超過
+						else if(actualWorkingHours > upperLimitTimeForAdmissionOnTheWay){
+							//月単価1000円未満切り捨て以外
+							if(thousandCuts != '1000'){
+								//超過単価10円未満切り捨て
+								if(unit == '10'){
+									//立替なし
+									if(Prepaid == null){
+										BillingAmount = Math.floor
+										((excessAmountForAdmissionOnTheWay10 +subtotal) /10) +
+										excessAmountForAdmissionOnTheWay10 + subtotal;
+									}
+									//立替あり
+									else{
+										BillingAmount = Math.floor
+										((excessAmountForAdmissionOnTheWay10 +subtotal) /10) +
+										excessAmountForAdmissionOnTheWay10 + subtotal + Prepaid;
+									}
+								}
+								
+								//超過単価100円未満切り捨て
+								if(unit == '100'){
+									//立替なし
+									if(Prepaid == null){
+										BillingAmount = Math.floor
+										((excessAmountForAdmissionOnTheWay100 + subtotal) /10) +
+										excessAmountForAdmissionOnTheWay100 + subtotal;
+									}
+									//立替あり
+									else{
+										BillingAmount = Math.floor
+										((excessAmountForAdmissionOnTheWay100 + subtotal) /10) +
+										excessAmountForAdmissionOnTheWay100 + subtotal + Prepaid;
+									}
+								}
+							}
+							
+							//月単価1000円未満切り捨て
+							else if(thousandCuts == '1000'){
+								//超過単価10円未満切り捨て
+								if(unit == '10'){
+									//立替なし
+									if(Prepaid == null){
+										BillingAmount = Math.floor
+										((excessAmountForAdmissionOnTheWay1000 + subtotal1000) /10) +
+										excessAmountForAdmissionOnTheWay1000 + subtotal1000;
+									}
+									//立替あり
+									else{
+										BillingAmount = Math.floor
+										((excessAmountForAdmissionOnTheWay1000 + subtotal1000) /10) +
+										excessAmountForAdmissionOnTheWay1000 + subtotal1000 + Prepaid;
+									}
+								}
+								
+								//超過単価100円未満切り捨て
+								if(unit == '100'){
+									//立替なし
+									if(Prepaid == null){
+										BillingAmount = Math.floor
+										((excessAmountForAdmissionOnTheWay100 + subtotal1000) /10) +
+										excessAmountForAdmissionOnTheWay100 + subtotal1000;
+									}
+									//立替あり
+									else{
+										BillingAmount = Math.floor
+										((excessAmountForAdmissionOnTheWay100 + subtotal1000) /10) +
+										excessAmountForAdmissionOnTheWay100 +subtotal1000 + Prepaid;
+									}
+								}
+							}
+						}
+						
+						//控除
+						else if(actualWorkingHours < lowerLimitTimeForAdmissionOnTheWay){
+							//月単価1000円未満切り捨て以外
+							if(thousandCuts != '1000'){
+								//控除単価10円未満切り捨て
+								if(unit == '10'){
+									//立替なし
+									if(Prepaid == null){
+										BillingAmount = Math.floor
+										((deductionAmountForAdmissionOnTheWay10 + subtotal) /10) +
+										deductionAmountForAdmissionOnTheWay10 + subtotal;
+									}
+									//立替あり
+									else{
+										BillingAmount = Math.floor
+										((deductionAmountForAdmissionOnTheWay10 + subtotal) /10) +
+										deductionAmountForAdmissionOnTheWay10 + subtotal + Prepaid;
+									}
+								}
+								
+								//控除単価100円未満切り捨て
+								if(unit == '100'){
+									//立替なし
+									if(Prepaid == null){
+										BillingAmount = Math.floor
+										((deductionAmountForAdmissionOnTheWay100 + subtotal) /10) +
+										deductionAmountForAdmissionOnTheWay100 + subtotal;
+									}
+									//立替あり
+									else{
+										BillingAmount = Math.floor
+										((deductionAmountForAdmissionOnTheWay100 + subtotal) /10) +
+										deductionAmountForAdmissionOnTheWay100 + subtotal + Prepaid;
+									}
+								}
+							}
+							
+							//月単価1000円未満切り捨て
+							else if(thousandCuts == '1000'){
+								//控除単価10円未満切り捨て
+								if(unit == '10'){
+									//立替なし
+									if(Prepaid == null){
+										BillingAmount = Math.floor
+										((deductionAmountForAdmissionOnTheWay1000 + subtotal1000) / 10) +
+										deductionAmountForAdmissionOnTheWay1000 + subtotal1000;
+									}
+									//立替あり
+									else{
+										BillingAmount = Math.floor
+										((deductionAmountForAdmissionOnTheWay1000 +subtotal1000) / 10) +
+										deductionAmountForAdmissionOnTheWay1000 + subtotal1000 + Prepaid;
+									}
+								}
+								
+								//控除単価100円未満切り捨て
+								if(unit == '100'){
+									//立替なし
+									if(Prepaid == null){
+										BillingAmount = Math.floor
+										((deductionAmountForAdmissionOnTheWay100 + subtotal1000) / 10) +
+										deductionAmountForAdmissionOnTheWay100 + subtotal1000;
+									}
+									//立替あり
+									else{
+										BillingAmount = Math.floor
+										((deductionAmountForAdmissionOnTheWay100 + subtotal1000) / 10) +
+										deductionAmountForAdmissionOnTheWay100 + subtotal1000 + Prepaid;
+									}
+								}
+							}
+						}
+					}
+				}
+				
+				//中割あり
+				else if(middleDiscount2 == '中割'){
+					//一日
+					if(((workingWeekFirstDayTrue) &&
+					startPeriodMonth == acceptanceDateMonth) || startPeriodMonth != acceptanceDateMonth){
+						//基準
+						if(actualWorkingHours >= lowerLimitTime && actualWorkingHours <= upperLimitTime){
+							//立替なし
+							if(Prepaid == null){
+								BillingAmount=Math.floor(value /10) + value;
+							}
+							//立替あり
+							else{
+								BillingAmount=Math.floor(value /10) + value + Prepaid;
+							}
+						}
+						
+						//超過
+						if(actualWorkingHours > upperLimitTime){
+							//超過単価10円未満切り捨て
+							if(unit == '10'){
+								//立替なし
+								if(Prepaid == null){
+									BillingAmount=Math.floor
+									((excessedMiddleDiscountAmount10 +value) /10) +
+									excessedMiddleDiscountAmount10 + value;
+								}
+								//立替あり
+								else{
+									BillingAmount=Math.floor
+									((excessedMiddleDiscountAmount10 +value) /10) +
+									excessedMiddleDiscountAmount10 +value + Prepaid;
+								}
+							}
+							
+							//超過単価100円未満切り捨て
+							if(unit == '100'){
+								//立替なし
+								if(Prepaid == null){
+									BillingAmount=Math.floor
+									((excessedMiddleDiscountAmount100 + value) /10) +
+									excessedMiddleDiscountAmount100 + value;
+								}
+								//立替あり
+								else{
+									BillingAmount=Math.floor
+									((excessedMiddleDiscountAmount100 +value) /10) +
+									excessedMiddleDiscountAmount100 +value + Prepaid;
+								}
+							}
+						}
+						
+						//控除
+						else if(actualWorkingHours < lowerLimitTime){
+							//控除単価10円未満切り捨て
+							if(unit == '10'){
+								//立替なし
+								if(Prepaid == null){
+									BillingAmount=Math.floor
+									((lowerMiddleDiscountAmount10 +value) /10) +
+									lowerMiddleDiscountAmount10 + value;
+								}
+								//立替あり
+								else{
+									BillingAmount=Math.floor
+									((lowerMiddleDiscountAmount10 +value) /10) +
+									lowerMiddleDiscountAmount10 +value + Prepaid;
+								}
+							}
+							
+							//控除単価100円未満切り捨て
+							if(unit == '100'){
+								//立替なし
+								if(Prepaid == null){
+									BillingAmount=Math.floor
+									((lowerMiddleDiscountAmount100 +value) /10) +
+									lowerMiddleDiscountAmount100 +value;
+								}
+								//立替あり
+								else{
+									BillingAmount=Math.floor
+									((lowerMiddleDiscountAmount100 + value) /10) +
+									lowerMiddleDiscountAmount100 + value + Prepaid;
+								}
+							}
+						}
+					}
+					
+					//途中
+					else if(!workingWeekFirstDayTrue &&
+							startPeriodMonth == acceptanceDateMonth){
+						//基準
+						if(actualWorkingHours >= lowerLimitTimeForAdmissionOnTheWay &&
+								actualWorkingHours <= upperLimitTimeForAdmissionOnTheWay){
+							//月単価1000円未満切り捨て以外
+							if(thousandCuts != '1000'){
+								//立替なし
+								if(Prepaid == null){
+									BillingAmount=total;
+								}
+								//立替あり
+								else{
+									BillingAmount=Recalculation;
+								}
+							}
+							
+							//月単価1000円未満切り捨て
+							else if(thousandCuts == '1000'){
+								//立替なし
+								if(Prepaid == null){
+									BillingAmount=Math.floor
+									(subtotal1000 /10) + subtotal1000;
+								}
+								//立替あり
+								else{
+									BillingAmount=Math.floor
+									((subtotal1000) /10) +subtotal1000 + Prepaid;
+								}
+							}
+						}
+						
+						//超過
+						if(actualWorkingHours > upperLimitTimeForAdmissionOnTheWay){
+							//月単価1000円未満切り捨て以外
+							if(thousandCuts != '1000'){
+								//超過単価10円未満切り捨て
+								if(unit == '10'){
+									//立替なし
+									if(Prepaid == null){
+										BillingAmount=Math.floor
+										((excessedMiddleDiscountAmountForAdmissionOnTheWay10 +
+												subtotal) /10) +
+												(excessedMiddleDiscountAmountForAdmissionOnTheWay10 +
+														subtotal);
+									}
+									//立替あり
+									else{
+										BillingAmount=Math.floor
+										((excessedMiddleDiscountAmountForAdmissionOnTheWay10 +
+												subtotal) /10) +
+												(excessedMiddleDiscountAmountForAdmissionOnTheWay10 +
+														subtotal + Prepaid);
+									}
+								}
+								
+								//超過単価100円未満切り捨て
+								if(unit == '100'){
+									//立替なし
+									if(Prepaid == null){
+										BillingAmount=Math.floor
+										((excessedMiddleDiscountAmountForAdmissionOnTheWay100 +
+												subtotal) /10) +
+												(excessedMiddleDiscountAmountForAdmissionOnTheWay100 +
+														subtotal);
+									}
+									//立替あり
+									else{
+										BillingAmount=Math.floor
+										((excessedMiddleDiscountAmountForAdmissionOnTheWay100 +
+												subtotal) /10) +
+												(excessedMiddleDiscountAmountForAdmissionOnTheWay100 +
+														subtotal + Prepaid);
+									}
+								}
+							}
+							
+							//月単価1000円未満切り捨て
+							else if(thousandCuts == '1000'){
+								//超過単価10円未満切り捨て
+								if(unit == '10'){
+									//立替なし
+									if(Prepaid == null){
+										BillingAmount=Math.floor
+										((excessedMiddleDiscountAmountForAdmissionOnTheWay1000 +
+												subtotal1000) /10) +
+												(excessedMiddleDiscountAmountForAdmissionOnTheWay1000 +
+														subtotal1000);
+									}
+									//立替あり
+									else{
+										BillingAmount=Math.floor
+										((excessedMiddleDiscountAmountForAdmissionOnTheWay1000 +
+												subtotal1000) /10) +
+												(excessedMiddleDiscountAmountForAdmissionOnTheWay1000 +
+														subtotal1000 + Prepaid);
+									}
+								}
+								
+								//超過単価100円未満切り捨て
+								if(unit == '100'){
+									//立替なし
+									if(Prepaid == null){
+										BillingAmount=Math.floor
+										((excessedMiddleDiscountAmountForAdmissionOnTheWay100 +
+												subtotal1000) /10) +
+												(excessedMiddleDiscountAmountForAdmissionOnTheWay100 +
+														subtotal1000);
+									}
+									//立替あり
+									else{
+										BillingAmount=Math.floor
+										((excessedMiddleDiscountAmountForAdmissionOnTheWay100 +
+												subtotal1000) /10) +
+												(excessedMiddleDiscountAmountForAdmissionOnTheWay100 +
+														subtotal1000 + Prepaid);
+									}
+								}
+							}
+						}
+						
+						//控除
+						else if(actualWorkingHours < lowerLimitTimeForAdmissionOnTheWay){
+							//月単価1000円未満切り捨て以外
+							if(thousandCuts != '1000'){
+								//控除単価10円未満切り捨て
+								if(unit == '10'){
+									//立替なし
+									if(Prepaid == null){
+										BillingAmount=Math.floor
+										((lowerMiddleDiscountAmountForAdmissionOnTheWay10 +subtotal) /10) +
+										lowerMiddleDiscountAmountForAdmissionOnTheWay10 +subtotal;
+									}
+									//立替あり
+									else{
+										BillingAmount=Math.floor
+										((lowerMiddleDiscountAmountForAdmissionOnTheWay10 +subtotal) /10) +
+										lowerMiddleDiscountAmountForAdmissionOnTheWay10 +subtotal + Prepaid;
+									}
+								}
+								
+								//控除単価100円未満切り捨て
+								if(unit == '100'){
+									//立替なし
+									if(Prepaid == null){
+										BillingAmount=Math.floor
+										((lowerMiddleDiscountAmountForAdmissionOnTheWay100 +subtotal) /10) +
+										lowerMiddleDiscountAmountForAdmissionOnTheWay100 +subtotal;
+									}
+									//立替あり
+									else{
+										BillingAmount=Math.floor
+										((lowerMiddleDiscountAmountForAdmissionOnTheWay100 +subtotal) /10) +
+										lowerMiddleDiscountAmountForAdmissionOnTheWay100 +subtotal + Prepaid;
+									}
+								}
+							}
+							
+							//月単価1000円未満切り捨て
+							else if(thousandCuts == '1000'){
+								//控除単価10円未満切り捨て
+								if(unit == '10'){
+									//立替なし
+									if(Prepaid == null){
+										BillingAmount=Math.floor
+										((lowerMiddleDiscountAmountForAdmissionOnTheWay1000 +
+												subtotal1000) /10) +
+												lowerMiddleDiscountAmountForAdmissionOnTheWay1000 +
+												subtotal1000;
+									}
+									//立替あり
+									else{
+										BillingAmount=Math.floor
+										((lowerMiddleDiscountAmountForAdmissionOnTheWay1000 +
+												subtotal1000) /10) +
+												lowerMiddleDiscountAmountForAdmissionOnTheWay1000 +
+												subtotal1000 + Prepaid;
+									}
+								}
+								
+								//控除単価100円未満切り捨て
+								if(unit == '100'){
+									//立替なし
+									if(Prepaid == null){
+										BillingAmount=Math.floor
+										((lowerMiddleDiscountAmountForAdmissionOnTheWay100 +
+												subtotal1000) /10) +
+												lowerMiddleDiscountAmountForAdmissionOnTheWay100 +
+												subtotal1000;
+									}
+									//立替あり
+									else{
+										BillingAmount=Math.floor
+										((lowerMiddleDiscountAmountForAdmissionOnTheWay100 +
+												subtotal1000) /10) +
+												lowerMiddleDiscountAmountForAdmissionOnTheWay100 +
+												subtotal1000 + Prepaid;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			document.getElementById("BillingAmount").innerHTML =
+				BillingAmount.toLocaleString(); //テーブル内の請求額表示
+			document.getElementById("AmountClaimed").innerHTML =
+				('\\' + BillingAmount.toLocaleString() + '.-' + '　(税込)'); //請求額の表示
+			if(Prepaid!=null){
+				document.Form2.tatekae.value = getComma(Prepaid); //立替交通費にカンマをつける
+			}
+		}
+		
+		//数字にカンマを付ける
+		function getComma(num){
+			num = new String(num).replace(/,/g, ""); //一旦カンマを削除（*3）
+			while (num != (num = num.replace(/^(-?\d+)(\d{3})/, "$1,$2"))); //3桁毎にカンマを挿入（*4)
+			return num;
+		}
+		</script>
+		
+		<!--タイトル・印刷/遷移先ボタン -->
+		<form class="insatu">
+			<input type="button" class="print_button" value="請求書の印刷" onClick="window.print();"/>
+			<input type="button" class="print_button" value="閉じる" onclick="window.close();"/>
+		</form>
+		
+		<!-- ページ指定-->
+		<section class="sheet">
+			<!-- DBのデータを表示する -->
+			<div th:object="${form}">
+				<!-- 日付とNo -->
+				<div class="line1">
+					<div id="kuuhaku">
+						<!-- 日付の表示 -->
+						<p
+							class="text-right"
+							th:text="*{acceptanceDateYear + '年' +
+							acceptanceDateMonth + '月' +
+							acceptanceDateLastdayDay + '日'}"
+							style="font-size: 10pt"
+						></p>
+						<!-- Noの表示 -->
+						<p
+							class="shadow"
+							th:text="*{'No-' + number + '-'+ sBranchNumber}"
+							style="font-size: 10pt;
+							font-weight: bold;"
+						></p>
+					</div>
+				</div>
+			</div>
+			
+			<!-- タイトルの表示 -->
+			<div class="line2">
+				<h1 class="text-center">請求書</h1>
+			</div>
+			
+			<!-- DBのデータを表示する -->
+			<div th:object="${form}">
+				<!-- 得意先名 -->
+				<div class="line3">
+					<h2
+						class="customer_name"
+						th:text="*{company + '   　御中'}"
+						style="letter-spacing: -1px"
+					></h2>
+				</div>
+				
+				<!-- 自社情報 -->
+				<div class="line4">
+					<div class="col_1">
+						<ul>
+							<li>〒171-0014</li>
+							<li>東京都豊島区池袋2-51-15</li>
+							<li>第3ハルタビル201</li>
+							<li>
+								<h2>株式会社　リスペクツ</h2>
+							</li>
+							<li style="font-size: 10pt">登録番号 T6013301023605</li>
+							<li style="font-size: 10pt">TEL03-5391-3811　　
+								FAX03-5391-3815</li>
+						</ul>
+						<!-- 印鑑の表示 -->
+						<img class="inkan" src="/img/signatureStamp.png">
+					</div>
+				</div>
+				
+				<!-- 記の表示 -->
+				<div class="line5">
+					<p class="text-center">記</p>
+				</div>
+				
+				<!-- formの指定 -->
+				<form action="#" name="Form2">
+					
+					<!-- 請求金額の表示 -->
+					<div class="line6">
+						<table class="summary">
+							<tbody>
+								<tr>
+									<th>ご請求金額</th>
+									<!-- 初期値として「小計+消費税」の合計を表示 -->
+									<td>
+										<div id="AmountClaimed" style="font-size: 14pt;"></div>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+					
+					<!-- 検収年月の表示 -->
+					<div class="line7">
+						<p th:text="*{'請求明細　 (' + acceptanceDateYear + '年' +correctADM + '月末検収分)'}"></p>
+					</div>
+					
+					<!-- 請求明細テーブル -->
+					<div class="line8">
+						<table class="seikixyuu">
+							<thead>
+								<tr>
+									<th class="contents">&nbsp;</th>
+									<th class="quantity">数量</th>
+									<th class="unit">単位</th>
+									<th class="unit_price">単価</th>
+									<th class="total">合計</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="datalune">
+									<td
+										class="B"
+										th:text="*{project}"
+										style="vertical-align: bottom;
+										padding-left: 0.2mm;"
+									></td>
+									<!-- プロジェクト名の表示 -->
+									<td class="j"></td>
+									<td></td>
+									<td></td>
+									<td class="C"></td>
+								</tr>
+								
+								<tr class="dataline">
+									<!-- 作業者名の表示 -->
+									<td
+										class="B"
+										th:text="*{'　　' + name}"
+										style="vertical-align: bottom;
+										padding-left: 0.2mm;"
+									></td>
+									
+									<!-- 日割りの数量を表示 -->
+									<td
+										class="text-right"
+										style="vertical-align: bottom;
+										padding-right: 1.5mm;"
+									>
+										<!-- 途中入場の場合 -->
+										<script th:inline="javascript">
+											if(!workingWeekFirstDayTrue && startPeriodMonth == acceptanceDateMonth){
+												document.write(quantity);
+											}
+										</script>
+										
+										<!-- 1日の場合 -->
+										<th:block th:if="${!(form.startPeriodDay == '01') && (form.startPeriodMonth == form.acceptanceDateMonth)}"></th:block>
+											<script th:inline="javascript">
+												if((workingWeekFirstDayTrue && startPeriodMonth==acceptanceDateMonth)||
+												startPeriodMonth!=acceptanceDateMonth){
+													document.write('1');
+												}
+											</script>
+										<th:block th:unless="${!(form.startPeriodDay == '01') && (form.startPeriodMonth == form.acceptanceDateMonth)}"></th:block>
+									</td>
+									
+									<!-- 単位の表示 -->
+									<td
+										class="text-center"
+										style="vertical-align: bottom;
+										transform: scale(0.7, 0.9);"
+									>M</td>
+									
+									<!-- 月単価の表示 -->
+									<td style="vertical-align: bottom;">
+										<!-- 一日入場の場合(月をまたぐ場合も同様) -->
+										<script th:inline="javascript">
+											if((workingWeekFirstDayTrue && startPeriodMonth==acceptanceDateMonth)||
+											startPeriodMonth!=acceptanceDateMonth){
+												document.write(value.toLocaleString());
+											}
+										</script>
+										<th:block th:if="${((form.startPeriodDay == '01') &&
+										(form.startPeriodMonth == form.acceptanceDateMonth))||
+										(form.startPeriodMonth < form.acceptanceDateMonth)}"></th:block>
+										
+										<!-- 途中入場の場合（1000円未満切捨て以外） -->
+										<script th:inline="javascript">
+											if(!workingWeekFirstDayTrue && startPeriodMonth ==acceptanceDateMonth&&
+											thousandCuts != '1000'){
+												document.write(value.toLocaleString());
+											}
+										</script>
+										<th:block th:if="${!(form.startPeriodDay == '01') &&
+										(form.startPeriodMonth == form.acceptanceDateMonth) &&
+										(form.thousandCuts != '1000')}"></th:block>
+										
+										<!-- 途中入場の場合（1000円未満切り捨て） -->
+										<script th:inline="javascript">
+											if(!workingWeekFirstDayTrue && startPeriodMonth == acceptanceDateMonth&&
+											thousandCuts == '1000'){
+												document.write(value1000.toLocaleString());
+											}
+										</script>
+										<th:block th:if="${!(form.startPeriodDay == '01') &&
+										(form.startPeriodMonth == form.acceptanceDateMonth) &&
+										(form.thousandCuts == '1000')}"></th:block>
+									</td>
+									
+									<!-- 月単価合計の表示 -->
+									<td
+										class="C"
+										style="vertical-align: bottom;
+										padding-right: 0.2mm;"
+									>
+										<!-- 一日入場の場合(月をまたぐ場合も同様) -->
+										<!-- 数量の表示 -->
+										<script th:inline="javascript">
+											if(((workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth))||
+											(startPeriodMonth != acceptanceDateMonth)){
+												document.write(value.toLocaleString());
+											}
+										</script>
+										<th:block th:if="${((form.startPeriodDay == '01') &&
+										(form.startPeriodMonth == form.acceptanceDateMonth))||
+										(form.startPeriodMonth < form.acceptanceDateMonth)}"></th:block>
+										
+										<!-- 途中入場の場合(1000円未満切捨て以外）-->
+										<script th:inline="javascript">
+											if((!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											(thousandCuts != '1000')){
+												document.write(subtotal.toLocaleString());
+											}
+										</script>
+										<th:block th:if="${!(form.startPeriodDay == '01') &&
+										(form.startPeriodMonth == form.acceptanceDateMonth) &&
+										(form.thousandCuts != '1000')}"></th:block>
+										
+										<!-- 途中入場の場合（1000円未満切捨て） -->
+										<script th:inline="javascript">
+											if((!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											(thousandCuts == '1000')){
+												document.write(subtotal1000.toLocaleString());
+											}
+										</script>
+										<th:block th:if="${!(form.startPeriodDay == '01') &&
+										(form.startPeriodMonth == form.acceptanceDateMonth) &&
+										(form.thousandCuts == '1000')}"></th:block>
+									</td>
+								</tr>
+								
+								<tr class="dataline">
+									<!-- 実働時間と基準時間の表示 -->
+									<td class="B">
+										<!-- 固定の場合(一日・途中変更なし) -->
+										<th:block
+											th:if="${form.referenceTime == '固定'}"
+											style="vertical-align:bottom;
+											padding-left: 0.2mm;
+											display: inline-block;
+											_display: inline;"
+										>
+											<script th:inline="javascript">
+												document.write('　　※固定　実働時間 :&nbsp;'+
+												actualWorkingHours.toLocaleString(undefined, { maximumFractionDigits: 2 }) +
+												'<div style="transform:scale(0.7, 0.9); display: '+
+												'inline-block; _display: inline;">H</div>');
+											</script>
+										</th:block>
+										
+										<!-- 精算 + 一日入場の場合 -->
+										<th:block
+											style="vertical-align:bottom;
+											padding-left: 0.2mm;
+											transform:scale(0.7, 0.9);
+											display: inline-block;
+											_display: inline;"
+										>
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (middleDiscount != '中割') &&
+												(((workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write('　　実働時間 :&nbsp;'+ actualWorkingHours.toLocaleString(
+													undefined, { maximumFractionDigits: 2 }) +
+													'<div style="transform:scale(0.7, 0.9); display: '+
+													'inline-block; _display: inline;">H</div>' +
+													'　※'+ lowerLimitTime+
+													'<div style="transform:scale(0.7, 0.9); display: '+
+													'inline-block; _display: inline;">H</div>'  +
+													'～' + upperLimitTime +
+													'<div style="transform:scale(0.7, 0.9); display: '+
+													'inline-block; _display: inline;">H</div>' );
+												}
+											</script>
+										</th:block>
+										
+										<!-- 精算 + 途中入場の場合(月単価1000円未満切り捨て以外) -->
+										<th:block
+											style="vertical-align:bottom;
+											padding-left: 0.2mm;
+											transform:scale(0.7, 0.9);
+											display: inline-block; _display: inline;"
+										>
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (middleDiscount != '中割') &&
+												(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+												(thousandCuts != '1000')){
+													document.write('　　実働時間 :&nbsp;'+ actualWorkingHours.toLocaleString(
+													undefined, { maximumFractionDigits: 2 }) +
+													'<div style="transform:scale(0.7, 0.9); display: '+
+													'inline-block; _display: inline;">H</div>' +
+													'　※' + lowerLimitTimeForAdmissionOnTheWay +
+													'<div style="transform:scale(0.7, 0.9); display: '+
+													'inline-block; _display: inline;">H</div>' +
+													'～' + upperLimitTimeForAdmissionOnTheWay +
+													'<div style="transform:scale(0.7, 0.9); display: '+
+													'inline-block; _display: inline;">H</div>' );
+												}
+											</script>
+										</th:block>
+										
+										<!-- 精算 + 途中入場の場合(月単価1000円未満切り捨て) -->
+										<th:block
+											style="vertical-align:bottom;
+											padding-left: 0.2mm;
+											transform:scale(0.7, 0.9);
+											display: inline-block;
+											_display: inline;"
+										>
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (middleDiscount != '中割') &&
+												(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+												(thousandCuts == '1000')){
+													document.write('　　実働時間 :&nbsp;'+ actualWorkingHours.toLocaleString(
+													undefined, { maximumFractionDigits: 2 }) +
+													'<div style="transform:scale(0.7, 0.9); display: '+
+													'inline-block; _display: inline;">H</div>' +
+													'　※' + lowerLimitTimeForAdmissionOnTheWay1000.toFixed(1) +
+													'<div style="transform:scale(0.7, 0.9); display: '+
+													'inline-block; _display: inline;">H</div>' +
+													'～' + upperLimitTimeForAdmissionOnTheWay1000.toFixed(1) +
+													'<div style="transform:scale(0.7, 0.9); display: '+
+													'inline-block; _display: inline;">H</div>' );
+												}
+											</script>
+										</th:block>
+										
+										<!-- 精算 + 一日入場 + 中割の場合 -->
+										<th:block
+											style="vertical-align:bottom;
+											padding-left: 0.2mm;
+											transform:scale(0.7, 0.9);
+											display: inline-block;
+											_display: inline;"
+										>
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (middleDiscount == '中割') &&
+												(((workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write('　　実働時間 :&nbsp;'+ actualWorkingHours.toLocaleString(
+													undefined, { maximumFractionDigits: 2 }) +
+													'<div style="transform:scale(0.7, 0.9); display: '+
+													'inline-block; _display: inline;">H</div>' +
+													'　※' + lowerLimitTime +
+													'<div style="transform:scale(0.7, 0.9); display: '+
+													'inline-block; _display: inline;">H</div>' +
+													'～' + upperLimitTime +
+													'<div style="transform:scale(0.7, 0.9); display: '+
+													'inline-block; _display: inline;">H</div>' + '(中割)');
+												}
+											</script>
+										</th:block>
+										
+										<!-- 精算 + 途中入場 + 中割の場合(月単価1000円未満切り捨て以外) -->
+										<th:block
+											style="vertical-align:bottom;
+											padding-left: 0.2mm;
+											transform:scale(0.7, 0.9);
+											display: inline-block;
+											_display: inline;"
+										>
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (middleDiscount == '中割') &&
+												(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+												(thousandCuts != '1000')){
+													document.write('　　実働時間 :&nbsp;'+ actualWorkingHours.toLocaleString(
+													undefined, { maximumFractionDigits: 2 }) +
+													'<div style="transform:scale(0.7, 0.9); display: '+
+													'inline-block; _display: inline;">H</div>' +
+													'　※' + lowerLimitTimeForAdmissionOnTheWay +
+													'<div style="transform:scale(0.7, 0.9); display: '+
+													'inline-block; _display: inline;">H</div>' +
+													'～' + upperLimitTimeForAdmissionOnTheWay +
+													'<div style="transform:scale(0.7, 0.9); display: '+
+													'inline-block; _display: inline;">H</div>' + '(中割)');
+												}
+											</script>
+										</th:block>
+										
+										<!-- 精算 + 途中入場 + 中割の場合(月単価1000円未満切り捨て) -->
+										<th:block
+											style="vertical-align:bottom;
+											padding-left: 0.2mm; transform:scale(0.7, 0.9);
+											display: inline-block; _display: inline;"
+										>
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (middleDiscount == '中割') &&
+												(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+												(thousandCuts == '1000')){
+													document.write('　　実働時間 :&nbsp;'+ actualWorkingHours.toLocaleString(
+													undefined, { maximumFractionDigits: 2 }) +
+													'<div style="transform:scale(0.7, 0.9); '+
+													'display: inline-block; _display: inline;">H</div>' +
+													'　※' + lowerLimitTimeForAdmissionOnTheWay1000.toFixed(1) +
+													'<div style="transform:scale(0.7, 0.9); '+
+													'display: inline-block; _display: inline;">H</div>' +
+													'～' + upperLimitTimeForAdmissionOnTheWay1000.toFixed(1) +
+													'<div style="transform:scale(0.7, 0.9); '+
+													'display: inline-block; _display: inline;">H</div>' +
+													'(中割)');
+												}
+											</script>
+										</th:block>
+									</td>
+									
+									<!-- 超過・控除の数量を表示 -->
+									<td
+										class="text-right"
+										style="vertical-align: bottom;
+										padding-right: 1.5mm;"
+									>
+										<!-- 一日入場 + 超過の場合 -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (actualWorkingHours > upperLimitTime) &&
+											(((workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth)) ||
+											(startPeriodMonth != acceptanceDateMonth))){
+												document.write(overtime.toLocaleString(undefined, { maximumFractionDigits: 2 }));
+											}
+										</script>
+										<th:block
+											th:if="${(form.referenceTime == '精算') &&
+											(form.actualWorkingHours gt form.upperLimitTime) &&
+											(((form.startPeriodDay == '01') &&
+											(form.startPeriodMonth == form.acceptanceDateMonth)) ||
+											(form.startPeriodMonth != form.acceptanceDateMonth))}"
+										>
+										</th:block>
+										
+										<!-- 一日入場 + 控除の場合 -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (actualWorkingHours < lowerLimitTime) &&
+											(((workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth)) ||
+											(startPeriodMonth != acceptanceDateMonth))){
+												document.write(Math.abs(lessTime).toLocaleString(undefined, { maximumFractionDigits: 2 }));
+											}
+										</script>
+										<th:block
+											th:if="${(form.referenceTime == '精算') &&
+											(form.actualWorkingHours lt form.lowerLimitTime) &&
+											(((form.startPeriodDay == '01') &&
+											(form.startPeriodMonth == form.acceptanceDateMonth)) ||
+											(form.startPeriodMonth != form.acceptanceDateMonth))}"
+										>
+										</th:block>
+										
+										<!-- 途中入場 + 超過の場合 -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (actualWorkingHours >upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth)){
+												document.write(overtimeForAdmissionOnTheWay.toLocaleString(
+												undefined, { maximumFractionDigits: 2 }));
+											}
+										</script>
+										
+										<!-- 途中入場 + 控除の場合 -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (actualWorkingHours <lowerLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth)){
+												document.write(Math.abs(lessTimeForAdmissionOnTheWay).toLocaleString(
+												undefined, { maximumFractionDigits: 2 }));
+											}
+										</script>
+									</td>
+									
+									<!-- 超過・控除の単位"H"を表示 -->
+									<td
+										class="text-center"
+										style="vertical-align: bottom;
+										padding-left: 0.2mm;
+										transform: scale(0.7, 0.9);"
+									>
+										<!-- 基準時間内 + 一日入場の場合 -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (actualWorkingHours >= lowerLimitTime) &&
+											(actualWorkingHours <= upperLimitTime) && (((workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth)) ||
+											(startPeriodMonth != acceptanceDateMonth) &&
+											((middleDiscount2 != '中割') || (middleDiscount2 == '中割')))){
+												document.write('')
+											}
+										</script>
+										
+										<!-- 基準時間内 + 途中入場の場合 -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (actualWorkingHours>=lowerLimitTimeForAdmissionOnTheWay)&&
+											(actualWorkingHours<=upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											((middleDiscount2 != '中割') || (middleDiscount2 == '中割'))){
+												document.write('')
+											}
+										</script>
+										
+										<!-- 超過 + 一日入場の場合 -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (actualWorkingHours > upperLimitTime) &&
+											(((workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth)) ||
+											(startPeriodMonth != acceptanceDateMonth))){
+												document.write('H');
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場の場合 -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (actualWorkingHours>upperLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth)){
+												document.write('H');
+											}
+										</script>
+										
+										<!-- 控除 + 一日入場の場合 -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (actualWorkingHours < lowerLimitTime) &&
+											(((workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth)) ||
+											(startPeriodMonth != acceptanceDateMonth))){
+												document.write('H')
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場の場合 -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth)){
+												document.write('H')
+											}
+										</script>
+									</td>
+									
+									<!-- 超過・控除の単価を表示 -->
+									<td style="vertical-align: bottom;">
+										<!-- 基準時間内 + 一日入場の場合 -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (actualWorkingHours >= lowerLimitTime) &&
+											(actualWorkingHours <= upperLimitTime) && (((workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth)) ||
+											(startPeriodMonth != acceptanceDateMonth) &&
+											((middleDiscount2 != '中割') || (middleDiscount2 == '中割')))){
+												document.write('')
+											}
+										</script>
+										
+										<!-- 基準時間内 + 途中入場の場合 -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (actualWorkingHours>=lowerLimitTimeForAdmissionOnTheWay)&&
+											(actualWorkingHours<=upperLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											((middleDiscount2 != '中割') || (middleDiscount2 == '中割'))){
+												document.write('')
+											}
+										</script>
+										
+										<!-- 超過 + 一日入場の場合(10円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '10') &&
+												(actualWorkingHours > upperLimitTime) &&
+												(middleDiscount != '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write(excessUnitPrice10.toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 超過 + 一日入場の場合(100円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '100') &&
+												(actualWorkingHours > upperLimitTime) &&
+												(middleDiscount != '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write(excessUnitPrice100.toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 超過 + 途中入場の場合(10円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts != '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write(excessUnitPrice10.toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場の場合(100円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts != '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write(excessUnitPrice100.toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場の場合(1000円未満切り捨て+10円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts == '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write(excessUnitPrice1000.toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場の場合(1000円未満切り捨て+100円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts == '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write(excessUnitPrice100.toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 一日入場の場合(10円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '10') &&
+												(actualWorkingHours < lowerLimitTime) &&
+												(middleDiscount != '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write('-' +deductionUnitPrice10.toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 控除 + 一日入場の場合(100円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '100') &&
+												(actualWorkingHours < lowerLimitTime) &&
+												(middleDiscount != '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write('-' +deductionUnitPrice100.toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 控除 + 途中入場の場合(10円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay) &&
+											(actualWorkingHours<upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts != '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write('-' + deductionUnitPrice10.toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場の場合(100円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay) &&
+											(actualWorkingHours<upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts != '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write('-' +deductionUnitPrice100.toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場の場合(1000円未満切り捨て+10円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay) &&
+											(actualWorkingHours<upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts == '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write('-' +deductionUnitPrice1000.toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場の場合(1000円未満切り捨て+100円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay) &&
+											(actualWorkingHours<upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts == '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write('-' +deductionUnitPrice100.toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 一日入場 + 中割の場合(10円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '10') &&
+												(actualWorkingHours > upperLimitTime) &&
+												(middleDiscount == '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write(middleDiscount10.toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 超過 + 一日入場 + 中割の場合(100円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '100') &&
+												(actualWorkingHours > upperLimitTime) &&
+												(middleDiscount == '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write(middleDiscount100.toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 超過 + 途中入場 + 中割の場合(10円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts != '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write(middleDiscount10.toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場 + 中割の場合(100円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts != '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write(middleDiscount100.toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場 + 中割の場合(1000円未満切り捨て+10円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts == '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write(middleDiscount1000.toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場 + 中割の場合(1000円未満切り捨て+100円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts == '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write(middleDiscount100.toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 一日入場 + 中割の場合(10円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '10') &&
+												(actualWorkingHours < lowerLimitTime) &&
+												(middleDiscount == '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write('-' +middleDiscount10.toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 控除 + 一日入場 + 中割の場合(100円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '100') &&
+												(actualWorkingHours < lowerLimitTime) &&
+												(middleDiscount == '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write('-' +middleDiscount100.toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 控除 + 途中入場 + 中割の場合(10円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts != '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write('-' +middleDiscount10.toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場 + 中割の場合(100円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts != '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write('-' +middleDiscount100.toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場 + 中割の場合(1000円未満切り捨て+10円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts == '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write('-' +middleDiscount1000.toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場 + 中割の場合(1000円未満切り捨て+100円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts == '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write('-' +middleDiscount100.toLocaleString());
+											}
+										</script>
+									</td>
+									
+									<!-- 超過・控除の合計額を表示 -->
+									<td class="C" style="vertical-align: bottom;">
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<!-- 超過 + 一日入場の場合(10円未満切り捨て) -->
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '10') &&
+												(actualWorkingHours > upperLimitTime)&&
+												(middleDiscount != '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write(excessAmount10.toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 超過 + 一日入場の場合(100円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '100') &&
+												(actualWorkingHours > upperLimitTime)&&
+												(middleDiscount != '中割') && (((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write(excessAmount100.toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 超過 + 途中入場の場合(10円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts != '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write(excessAmountForAdmissionOnTheWay10.toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場の場合(100円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts != '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write(excessAmountForAdmissionOnTheWay100.toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場の場合(1000円未満切り捨て+10円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts == '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write(excessAmountForAdmissionOnTheWay1000.toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場の場合(1000円未満切り捨て+100円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts == '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write(excessAmountForAdmissionOnTheWay100.toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 一日入場の場合(10円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '10') &&
+												(actualWorkingHours < lowerLimitTime) &&
+												(middleDiscount != '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write(deductionAmount10.toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 控除 + 一日入場の場合(100円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '100') &&
+												(actualWorkingHours < lowerLimitTime) &&
+												(middleDiscount != '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write(deductionAmount100.toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 控除 + 途中入場の場合(10円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts != '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write(deductionAmountForAdmissionOnTheWay10.toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場の場合(100円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts != '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write(deductionAmountForAdmissionOnTheWay100.toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場の場合(1000円未満切り捨て+10円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts == '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write(deductionAmountForAdmissionOnTheWay1000.toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場の場合(1000円未満切り捨て+100円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts == '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write(deductionAmountForAdmissionOnTheWay100.toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 一日入場 + 中割の場合(10円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '10') &&
+												(actualWorkingHours > upperLimitTime) &&
+												(middleDiscount == '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write(excessedMiddleDiscountAmount10.toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 超過 + 一日入場 + 中割の場合(100円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '100') &&
+												(actualWorkingHours > upperLimitTime) &&
+												(middleDiscount == '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write(excessedMiddleDiscountAmount100.toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 超過 + 途中入場 + 中割の場合(10円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts != '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write(excessedMiddleDiscountAmountForAdmissionOnTheWay10.toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場 + 中割の場合(100円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts != '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write(excessedMiddleDiscountAmountForAdmissionOnTheWay100.toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場 + 中割の場合(1000円未満切り捨て+10円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts == '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write(excessedMiddleDiscountAmountForAdmissionOnTheWay1000.toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場 + 中割の場合(1000円未満切り捨て+100円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts == '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write(excessedMiddleDiscountAmountForAdmissionOnTheWay100.toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 一日入場 + 中割の場合(10円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '10') &&
+												(actualWorkingHours < lowerLimitTime) &&
+												(middleDiscount == '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write(lowerMiddleDiscountAmount10.toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 控除 + 一日入場 + 中割の場合(100円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '100') &&
+												(actualWorkingHours < lowerLimitTime) &&
+												(middleDiscount == '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write(lowerMiddleDiscountAmount100.toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 控除 + 途中入場 + 中割の場合(10円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') &&
+												(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay) &&
+												(!workingWeekFirstDayTrue) && (thousandCuts != '1000') &&
+												(startPeriodMonth == acceptanceDateMonth) &&
+												(middleDiscount2 == '中割')){
+													document.write(lowerMiddleDiscountAmountForAdmissionOnTheWay10.toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場 + 中割の場合(100円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts != '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write(lowerMiddleDiscountAmountForAdmissionOnTheWay100.toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場 + 中割の場合(1000円未満切り捨て+10円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts == '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write(lowerMiddleDiscountAmountForAdmissionOnTheWay1000.toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場 + 中割の場合(1000円未満切り捨て+100円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (thousandCuts == '1000') &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write(lowerMiddleDiscountAmountForAdmissionOnTheWay100.toLocaleString());
+											}
+										</script>
+									</td>
+								</tr>
+								
+								<tr class="dataline">
+									<!-- 実働日数 -->
+									<td class="B" style="padding-left: 0.2mm; padding-bottom: 0.19mm;">
+										<!-- 途中入場の場合 -->
+										<script th:inline="javascript">
+											if((!workingWeekFirstDayTrue) && (quantity != 1) &&
+											(startPeriodMonth == acceptanceDateMonth)){
+												document.write('　　実働日数 :&nbsp;' + workingDay + '日間');
+											}
+										</script>
+										
+										<!-- 一日入場の場合 メモ -->
+										<th:block th:unless="${!(form.startPeriodDay == '01') && (form.startPeriodMonth == form.acceptanceDateMonth)}">
+											<input
+												type="text"
+												style="border: none;
+												outline: none;"
+												maxlength="24"
+											/>
+										</th:block>
+										
+										<!-- 一日入場の場合(例外) メモ -->
+										<script th:inline="javascript">
+											if((!workingWeekFirstDayTrue) && (quantity == 1) &&
+											(startPeriodMonth == acceptanceDateMonth)){
+												document.write('<span><input type="text"  style="border:none; '+
+												'outline:none;" maxlength="24" /></span>');
+											}
+										</script>
+									</td>
+									<td></td>
+									<td></td>
+									<td></td>
+									<td Class="C"></td>
+								</tr>
+								
+								<tr class="dataline">
+									<td class="B" style="padding-left: 0.2mm; padding-bottom: 0.19mm; vertical-align: bottom;">
+										<!-- 途中入場の場合 -->
+										<script th:inline="javascript">
+											if((!workingWeekFirstDayTrue) && (quantity != 1) &&
+											(startPeriodMonth == acceptanceDateMonth)){
+												document.write('　　※ 途中入場につき' + correctSPM + '月分は日割り計算とする。');
+											}
+										</script>
+										
+										<!-- 一日入場の場合 メモ -->
+										<th:block th:unless="${!(form.startPeriodDay == '01') &&
+										(form.startPeriodMonth == form.acceptanceDateMonth)}">
+											<input
+												type="text"
+												style="border: none;
+												outline: none;"
+												maxlength="24"
+											/>
+										</th:block>
+										
+										<!-- 一日入場の場合(例外) メモ -->
+										<script th:inline="javascript">
+											if((!workingWeekFirstDayTrue) && (quantity == 1) &&
+											(startPeriodMonth == acceptanceDateMonth)){
+												document.write('<span><input type="text"  '+
+												'style="border:none; outline:none;" '+ 'maxlength="24" /></span>');
+											}
+										</script>
+									</td>
+									<td></td>
+									<td></td>
+									<td></td>
+									<td Class="C"></td>
+								</tr>
+								
+								<tr class="dataline">
+									<!-- メモ欄 -->
+									<td class="B" style="padding-left: 0.2mm;padding-bottom: 0.19mm;">
+										<input
+											type="text"
+											style="border: none;
+											outline: none;"
+											maxlength="24"
+										>
+									</td>
+									<td></td>
+									<td></td>
+									<td></td>
+									<td class="C"></td>
+								</tr>
+								
+								<tr class="dataline">
+									<!-- メモ欄 -->
+									<td class="B" style="padding-left: 0.2mm;padding-bottom: 0.19mm;">
+										<input
+											type="text"
+											style="border: none;
+											outline: none;"
+											maxlength="24"
+										>
+									</td>
+									<td></td>
+									<td></td>
+									<td></td>
+									<td class="C"></td>
+								</tr>
+								
+								<tr class="dataline">
+									<!-- メモ欄 -->
+									<td class="B" style="padding-left: 0.2mm;padding-bottom: 0.19mm;">
+										<input
+											type="text"
+											style="border: none;
+											outline: none;"
+											maxlength="24"
+										>
+									</td>
+									<td></td>
+									<td></td>
+									<td></td>
+									<td class="C"></td>
+								</tr>
+								
+								<tr class="dataline">
+									<td class="D"style="vertical-align: bottom;padding-left: 0.2mm;">
+										小計
+									</td>
+									<td class="E"></td>
+									<td class="E"></td>
+									<td class="E"></td>
+									
+									<!-- 小計の表示 -->
+									<td class="F"style="padding-right: 0.2mm;vertical-align: bottom">
+										<!-- 固定 + 一日入場の場合 -->
+										<script th:inline="javascript">
+											if((referenceTime != '精算') && (((workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth)) ||
+											(startPeriodMonth != acceptanceDateMonth))){
+												document.write(value.toLocaleString());
+											}
+										</script>
+										<th:block
+											th:if="${!(form.referenceTime == '精算') &&
+											(((form.startPeriodDay == '01') &&
+											(form.startPeriodMonth == form.acceptanceDateMonth)) ||
+											(form.startPeriodMonth != form.acceptanceDateMonth))}"
+										>
+										</th:block>
+										
+										<!-- 固定 + 途中入場の場合(月単価1000円未満切り捨て以外) -->
+										<script th:inline="javascript">
+											if((referenceTime != '精算') && (thousandCuts != '1000') &&
+											(!workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth)){
+												document.write(subtotal.toLocaleString());
+											}
+										</script>
+										<th:block
+											th:if="${!(form.referenceTime == '精算') &&
+											(form.thousandCuts != '1000') &&
+											(form.startPeriodDay != '01') &&
+											(form.startPeriodMonth == form.acceptanceDateMonth)}"
+										>
+										</th:block>
+										
+										<!-- 固定 + 途中入場の場合(月単価1000円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime != '精算') && (thousandCuts == '1000') &&
+											(!workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth)){
+												document.write(subtotal1000.toLocaleString());
+											}
+										</script>
+										<th:block
+											th:if="${!(form.referenceTime == '精算') &&
+											(form.thousandCuts == '1000') &&
+											(form.startPeriodDay != '01') &&
+											(form.startPeriodMonth == form.acceptanceDateMonth)}"
+										>
+										</th:block>
+										
+										<!-- 基準時間内 + 一日入場の場合 -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (actualWorkingHours >= lowerLimitTime) &&
+											(actualWorkingHours <= upperLimitTime) &&
+											(((workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth)) ||
+											(startPeriodMonth != acceptanceDateMonth) &&
+											((middleDiscount2 != '中割') || (middleDiscount2 == '中割')))){
+												document.write(value.toLocaleString());
+											}
+										</script>
+										
+										<!-- 基準時間内 + 途中入場の場合(月単価1000円未満切り捨て以外) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (thousandCuts != '1000') &&
+											(actualWorkingHours>=lowerLimitTimeForAdmissionOnTheWay)&&
+											(actualWorkingHours< upperLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											((middleDiscount2!='中割')||(middleDiscount2=='中割'))){
+												document.write(subtotal.toLocaleString());
+											}
+										</script>
+										
+										<!-- 基準時間内 + 途中入場の場合(月単価1000円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (thousandCuts == '1000') &&
+											(actualWorkingHours>=lowerLimitTimeForAdmissionOnTheWay)&&
+											(actualWorkingHours<=upperLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											((middleDiscount2!='中割')||(middleDiscount2=='中割'))){
+												document.write(subtotal1000.toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 一日入場の場合(控除単価10円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '10') &&
+												(actualWorkingHours > upperLimitTime) && (middleDiscount != '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write((excessAmount10 + value).toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 超過 + 一日入場の場合(控除単価100円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '100') &&
+												(actualWorkingHours > upperLimitTime) &&
+												(middleDiscount != '中割') && (((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write((excessAmount100 + value).toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 超過 + 途中入場の場合(超過単価10円未満切り捨て、
+										月単価1000円未満切り捨て以外) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') && (thousandCuts != '1000') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write((excessAmountForAdmissionOnTheWay10 + subtotal).toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場の場合(超過単価100円未満切り捨て、
+										月単価1000円未満切り捨て以外) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') && (thousandCuts != '1000') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write((excessAmountForAdmissionOnTheWay100 + subtotal).toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場の場合(超過単価10円未満切り捨て、
+										月単価1000円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') && (thousandCuts == '1000') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write((excessAmountForAdmissionOnTheWay1000 + subtotal1000).toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場の場合(超過単価100円未満切り捨て、
+										月単価1000円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') && (thousandCuts == '1000') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write((excessAmountForAdmissionOnTheWay100 + subtotal1000).toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 一日入場の場合(控除単価10円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '10') &&
+												(actualWorkingHours < lowerLimitTime) &&
+												(middleDiscount != '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write((deductionAmount10 + value).toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 控除 + 一日入場の場合(控除単価100円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '100') &&
+												(actualWorkingHours < lowerLimitTime) &&
+												(middleDiscount != '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write((deductionAmount100 + value).toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 控除 + 途中入場の場合(控除単価10円未満切り捨て、
+										月単価1000円未満切り捨て以外) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') && (thousandCuts != '1000') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write((deductionAmountForAdmissionOnTheWay10 + subtotal).toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場の場合(控除単価100円未満切り捨て、
+										月単価1000円未満切り捨て以外) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') && (thousandCuts != '1000') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write((deductionAmountForAdmissionOnTheWay100 + subtotal).toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場の場合(控除単価10円未満切り捨て、
+										月単価1000円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') && (thousandCuts == '1000') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write((deductionAmountForAdmissionOnTheWay1000 + subtotal1000).toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場の場合(控除単価100円未満切り捨て、
+										月単価1000円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') && (thousandCuts == '1000') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write((deductionAmountForAdmissionOnTheWay100 + subtotal1000).toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 一日入場 + 中割の場合
+										(控除単価10円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '10') &&
+												(actualWorkingHours > upperLimitTime) &&
+												(middleDiscount == '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write((excessedMiddleDiscountAmount10 +value).toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 超過 + 一日入場 + 中割の場合
+										(控除単価100円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '100') &&
+												(actualWorkingHours > upperLimitTime) &&
+												(middleDiscount == '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write((excessedMiddleDiscountAmount100 + value).toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 超過 + 途中入場 + 中割の場合
+										(控除単価10円未満切り捨て、
+										月単価1000円未満切り捨て以外) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') && (thousandCuts != '1000') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write((excessedMiddleDiscountAmountForAdmissionOnTheWay10 +
+												subtotal).toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場 + 中割の場合
+										(控除単価100円未満切り捨て、
+										月単価1000円未満切り捨て以外) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') && (thousandCuts != '1000') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write((excessedMiddleDiscountAmountForAdmissionOnTheWay100 +
+												subtotal).toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場 + 中割の場合
+										(控除単価10円未満切り捨て、
+										月単価1000円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') && (thousandCuts == '1000') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay) &&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write((excessedMiddleDiscountAmountForAdmissionOnTheWay1000 +
+												subtotal1000).toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場 + 中割の場合
+										(控除単価100円未満切り捨て、
+										月単価1000円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') && (thousandCuts == '1000') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write((excessedMiddleDiscountAmountForAdmissionOnTheWay100 +
+												subtotal1000).toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 一日入場 + 中割の場合
+										(控除単価10円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '10') &&
+												(actualWorkingHours < lowerLimitTime) &&
+												(middleDiscount == '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write((lowerMiddleDiscountAmount10 + value).toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 控除 + 一日入場 + 中割の場合
+										(控除単価100円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '100') &&
+												(actualWorkingHours < lowerLimitTime) &&
+												(middleDiscount == '中割') && (((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write((lowerMiddleDiscountAmount100 + value).toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 控除 + 途中入場 + 中割の場合
+										(控除単価10円未満切り捨て、
+										月単価1000円未満切り捨て以外) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') && (thousandCuts != '1000') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write((lowerMiddleDiscountAmountForAdmissionOnTheWay10 +
+												subtotal).toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場 + 中割の場合
+										(控除単価100円未満切り捨て、
+										月単価1000円未満切り捨て以外) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') && (thousandCuts != '1000') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write((lowerMiddleDiscountAmountForAdmissionOnTheWay100 +
+												subtotal).toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場 + 中割の場合
+										(控除単価10円未満切り捨て、
+										月単価1000円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') && (thousandCuts == '1000') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write((lowerMiddleDiscountAmountForAdmissionOnTheWay1000 +
+												subtotal1000).toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場 + 中割の場合
+										(控除単価10円未満切り捨て、
+										月単価1000円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') && (thousandCuts == '1000') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write((lowerMiddleDiscountAmountForAdmissionOnTheWay100 +
+												subtotal1000).toLocaleString());
+											}
+										</script>
+									</td>
+								</tr>
+								
+								<tr class="dataline">
+									<td class="B"></td>
+									<td></td>
+									<td></td>
+									<td></td>
+									<td class="C"></td>
+								</tr>
+								
+								<tr class="dataline">
+									<td class="B" style="vertical-align: bottom;padding-left: 0.2mm;">
+										消費税　(10%)
+									</td>
+									<td></td>
+									<td></td>
+									<td></td>
+									
+									<!-- 消費税の表示 -->
+									<td class="C" style="padding-right: 0.2mm;">
+										<!-- 固定 + 一日入場の場合 -->
+										<script th:inline="javascript">
+											if((referenceTime != '精算') && (((workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth)) ||
+											(startPeriodMonth != acceptanceDateMonth))){
+												document.write(salestax.toLocaleString());
+											}
+										</script>
+										<th:block
+											th:if="${!(form.referenceTime == '精算') &&
+											(((form.startPeriodDay == '01') &&
+											(form.startPeriodMonth == form.acceptanceDateMonth)) ||
+											(form.startPeriodMonth != form.acceptanceDateMonth))}"
+										>
+										</th:block>
+										
+										<!-- 固定 + 途中入場の場合(月単価1000円未満切り捨て以外) -->
+										<script th:inline="javascript">
+											if((referenceTime != '精算') && (thousandCuts != '1000') &&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth)){
+												document.write(tax.toLocaleString());
+											}
+										</script>
+										<th:block
+											th:if="${!(form.referenceTime == '精算') &&
+											(form.thousandCuts != '1000') &&
+											(form.startPeriodDay != '01') &&
+											(form.startPeriodMonth == form.acceptanceDateMonth)}"
+										>
+										</th:block>
+										
+										<!-- 固定 + 途中入場の場合(月単価1000円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime != '精算') && (thousandCuts == '1000') &&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth)){
+												document.write((subtotal1000/10).toLocaleString());
+											}
+										</script>
+										<th:block
+											th:if="${!(form.referenceTime == '精算') &&
+											(form.thousandCuts == '1000') &&
+											(form.startPeriodDay != '01') &&
+											(form.startPeriodMonth == form.acceptanceDateMonth)}"
+										>
+										</th:block>
+										
+										<!-- 基準時間内 + 一日入場の場合 -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (actualWorkingHours >= lowerLimitTime) &&
+											(actualWorkingHours <= upperLimitTime) && (((workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth)) ||
+											(startPeriodMonth != acceptanceDateMonth) &&
+											((middleDiscount2 != '中割') ||
+											(middleDiscount2 == '中割')))){
+												document.write(salestax.toLocaleString());
+											}
+										</script>
+										
+										<!-- 基準時間内 + 途中入場の場合
+										(月単価1000円未満切り捨て以外) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (thousandCuts != '1000') &&
+											(actualWorkingHours>=lowerLimitTimeForAdmissionOnTheWay)&&
+											(actualWorkingHours<=upperLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											((middleDiscount2 != '中割') || (middleDiscount2 == '中割'))){
+												document.write(tax.toLocaleString());
+											}
+										</script>
+										
+										<!-- 基準時間内 + 途中入場の場合
+										(月単価1000円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (actualWorkingHours>=lowerLimitTimeForAdmissionOnTheWay)&&
+											(actualWorkingHours<=upperLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											((middleDiscount2 != '中割') || (middleDiscount2 == '中割'))){
+												document.write(Math.floor(quantity * value1000 / 10).toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 一日入場の場合(超過単価10円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '10') &&
+												(actualWorkingHours > upperLimitTime) &&
+												(middleDiscount != '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write(Math.floor((excessAmount10 + value) /10).toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 超過 + 一日入場の場合(超過単価100円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '100') &&
+												(actualWorkingHours > upperLimitTime) &&
+												(middleDiscount != '中割') &&
+												(((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write(Math.floor((excessAmount100 + value) /10).toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 超過 + 途中入場の場合(超過単価10円未満切り捨て、
+										月単価1000円未満切り捨て以外) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') && (thousandCuts != '1000') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write(Math.floor((excessAmountForAdmissionOnTheWay10 +
+												subtotal) /10).toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場の場合(超過単価100円未満切り捨て、
+										月単価1000円未満切り捨て以外) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') && (thousandCuts != '1000') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write(Math.floor((excessAmountForAdmissionOnTheWay100 +
+												subtotal) /10).toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場の場合(超過単価10円未満切り捨て、
+										月単価1000円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') && (thousandCuts == '1000') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write(Math.floor((excessAmountForAdmissionOnTheWay1000 +
+												subtotal1000) /10).toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場の場合(超過単価100円未満切り捨て、
+										月単価1000円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') && (thousandCuts == '1000') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) &&
+											(startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write(Math.floor((excessAmountForAdmissionOnTheWay100 +
+												subtotal1000) /10).toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 一日入場の場合(控除単価10円未満切り捨て) -->
+										<th:block style="vertical-align:bottom;padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '10') &&
+												(actualWorkingHours < lowerLimitTime) &&
+												(middleDiscount != '中割') && (((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write(Math.floor((deductionAmount10 + value) /10).toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 控除 + 一日入場の場合(控除単価100円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right:0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '100') &&
+												(actualWorkingHours < lowerLimitTime) &&
+												(middleDiscount != '中割') && (((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write(Math.floor((deductionAmount100 + value) /10).toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 控除 + 途中入場の場合(控除単価10円未満切り捨て、
+										月単価1000円未満切り捨て以外) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') && (thousandCuts != '1000') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write(Math.floor((deductionAmountForAdmissionOnTheWay10 +
+												subtotal) /10).toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場の場合(控除単価100円未満切り捨て、
+										月単価1000円未満切り捨て以外) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') && (thousandCuts != '1000') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write(Math.floor((deductionAmountForAdmissionOnTheWay100 +
+												subtotal) /10).toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場の場合(控除単価10円未満切り捨て、
+										月単価1000円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') && (thousandCuts == '1000') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write(Math.floor((deductionAmountForAdmissionOnTheWay1000 +
+												subtotal1000) /10).toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場の場合(控除単価100円未満切り捨て、
+										月単価1000円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') && (thousandCuts == '1000') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 != '中割')){
+												document.write(Math.floor((deductionAmountForAdmissionOnTheWay100 +
+												subtotal1000) /10).toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 一日入場 + 中割の場合(超過単価10円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '10') && (thousandCuts != '1000') &&
+												(actualWorkingHours > upperLimitTime) &&
+												(middleDiscount == '中割') && (((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write(Math.floor((excessedMiddleDiscountAmount10 + value)/10).toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 超過 + 一日入場 + 中割の場合(超過単価100円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '100') && (thousandCuts != '1000') &&
+												(actualWorkingHours > upperLimitTime) &&
+												(middleDiscount == '中割') && (((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write(Math.floor((excessedMiddleDiscountAmount100 + value)/10).toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 超過 + 途中入場 + 中割の場合
+										(超過単価10円未満切り捨て、
+										月単価1000円未満切り捨て以外) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') && (thousandCuts != '1000') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write(Math.floor((excessedMiddleDiscountAmountForAdmissionOnTheWay10 +
+												subtotal) /10).toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場 + 中割の場合
+										(超過単価100円未満切り捨て、
+										月単価1000円未満切り捨て以外) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') && (thousandCuts != '1000') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write(Math.floor((excessedMiddleDiscountAmountForAdmissionOnTheWay100 +
+												subtotal) /10).toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場 + 中割の場合
+										(超過単価10円未満切り捨て、
+										月単価1000円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') && (thousandCuts == '1000') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write(Math.floor((excessedMiddleDiscountAmountForAdmissionOnTheWay1000 +
+												subtotal1000) /10).toLocaleString());
+											}
+										</script>
+										
+										<!-- 超過 + 途中入場 + 中割の場合
+										(超過単価100円未満切り捨て、
+										月単価1000円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') && (thousandCuts == '1000') &&
+											(actualWorkingHours>upperLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write(Math.floor((excessedMiddleDiscountAmountForAdmissionOnTheWay100 +
+												subtotal1000) /10).toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 一日入場 + 中割の場合(控除単価10円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '10') &&
+												(actualWorkingHours < lowerLimitTime) &&
+												(middleDiscount == '中割') && (((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write(Math.floor((lowerMiddleDiscountAmount10 + value) /10).toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 控除 + 一日入場 + 中割の場合(控除単価100円未満切り捨て) -->
+										<th:block style="vertical-align:bottom; padding-right: 0.2mm;">
+											<script th:inline="javascript">
+												if((referenceTime == '精算') && (unit == '100') &&
+												(actualWorkingHours < lowerLimitTime) &&
+												(middleDiscount == '中割') && (((workingWeekFirstDayTrue) &&
+												(startPeriodMonth == acceptanceDateMonth)) ||
+												(startPeriodMonth != acceptanceDateMonth))){
+													document.write(Math.floor((lowerMiddleDiscountAmount100 + value) /10).toLocaleString());
+												}
+											</script>
+										</th:block>
+										
+										<!-- 控除 + 途中入場 + 中割の場合
+										(控除単価10円未満切り捨て、
+										月単価1000円未満切り捨て以外) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') && (thousandCuts != '1000') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write(Math.floor((lowerMiddleDiscountAmountForAdmissionOnTheWay10 +
+												subtotal) /10).toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場 + 中割の場合
+										(控除単価100円未満切り捨て、
+										月単価1000円未満切り捨て以外) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') && (thousandCuts != '1000') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write(Math.floor((lowerMiddleDiscountAmountForAdmissionOnTheWay100 +
+												subtotal) /10).toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場 + 中割の場合
+										(控除単価10円未満切り捨て、
+										月単価1000円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '10') && (thousandCuts == '1000') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write(Math.floor((lowerMiddleDiscountAmountForAdmissionOnTheWay1000 +
+												subtotal1000) /10).toLocaleString());
+											}
+										</script>
+										
+										<!-- 控除 + 途中入場 + 中割の場合
+										(控除単価100円未満切り捨て、
+										月単価1000円未満切り捨て) -->
+										<script th:inline="javascript">
+											if((referenceTime == '精算') && (unit == '100') && (thousandCuts == '1000') &&
+											(actualWorkingHours<lowerLimitTimeForAdmissionOnTheWay)&&
+											(!workingWeekFirstDayTrue) && (startPeriodMonth == acceptanceDateMonth) &&
+											(middleDiscount2 == '中割')){
+												document.write(Math.floor((lowerMiddleDiscountAmountForAdmissionOnTheWay100 +
+												subtotal1000) /10).toLocaleString());
+											}
+										</script>
+									</td>
+								</tr>
+								
+								<tr class="dataline">
+									<!-- メモ欄 -->
+									<td
+										class="B"
+										style="padding-left: 0.2mm;
+										padding-bottom: 0.19mm;"
+									>
+										<input
+											type="text"
+											style="border: none;
+											outline: none;"
+											maxlength="24"
+										>
+									</td>
+									<td></td>
+									<td></td>
+									<td></td>
+									
+									<!-- 立替交通費入力欄 -->
+									<td
+										class="C"
+										style="padding-right: 0.2mm;
+										padding-bottom: 0.19mm;"
+									>
+										<!-- 立替交通費の入力欄にnameをつけておく -->
+										<input
+											name="tatekae"
+											type="text"
+											style="text-align: right;
+											border: none;
+											outline: none;"
+										/>
+									</td>
+								</tr>
+								
+								<tr class="dataline">
+									<td class="A"></td>
+									<td
+										class="H"
+										id="iro"
+										colspan="3"
+										bgcolor="#C0C0C0"
+										style="text-align: center;"
+									>
+										<p>
+											請求額
+											<input
+												type="button"
+												class="print_button"
+												value=" 立替分 "
+												onClick="calc()"
+											>
+										</p>
+									</td>
+									<!-- 初期値として「小計+消費税」の合計を表示 -->
+									<td
+										class="G"
+										style="vertical-align: bottom;
+										padding-right: 0.2mm;
+										border-top: 3px solid black;"
+									>
+										<div id="BillingAmount"></div>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+					
+					<!-- お支払日の表示 -->
+					<div class="line9">
+						<!-- 翌月末日を表示 -->
+						<th:block th:if="${form.payment} == '月末締め翌月末日'">
+							<p
+								th:text="*{'※お支払日　　　　' +
+								endOfMonthYear +'年' +
+								correctEMM + '月' +
+								endOfMonthDay + '日'}"
+							></p>
+						</th:block>
+						
+						<!-- 翌々月5日を表示 -->
+						<th:block th:if="${form.payment == '月末締め翌々月5日'}">
+							<p
+								th:text="*{'※お支払日　　　　' +
+								endOfNextMonthYear +'年' +
+								correctENMM + '月' +
+								endOfNextMonthDay5 + '日'}"
+							></p>
+						</th:block>
+						
+						<!-- 翌々月10日を表示 -->
+						<th:block th:if="${form.payment == '月末締め翌々月10日'}">
+							<p
+								th:text="*{'※お支払日　　　　' +
+								endOfNextMonthYear +'年' +
+								correctENMM + '月' +
+								endOfNextMonthDay10 + '日'}"
+							></p>
+						</th:block>
+						
+						<!-- 翌々月15日を表示 -->
+						<th:block th:if="${form.payment == '月末締め翌々月15日'}">
+							<p
+								th:text="*{'※お支払日　　　　' +
+								endOfNextMonthYear +'年' +
+								correctENMM + '月' +
+								endOfNextMonthDay15 + '日'}"
+							></p>
+						</th:block>
+						
+						<!-- その他(月末締め翌月) -->
+						<th:block
+							th:if="${(form.payment == 'その他') &&
+							(form.paymentMonth == '月末締め翌月') &&
+							(form.paymentDay != '末')}"
+						>
+							<p
+								th:text="*{'※お支払日　　　　' +
+								endOfMonthYear +'年' +
+								correctEMM + '月' +
+								paymentDay + '日'}"
+							></p>
+						</th:block>
+						
+						<!-- その他(月末締め翌月 + 末日) -->
+						<th:block
+							th:if="${(form.payment == 'その他') &&
+							(form.paymentMonth == '月末締め翌月') &&
+							(form.paymentDay == '末')}"
+						>
+							<p
+								th:text="*{'※お支払日　　　　' +
+								endOfMonthYear +'年' +
+								correctEMM + '月' +
+								endOfMonthDay + '日'}"
+							></p>
+						</th:block>
+						
+						<!-- その他(月末締め翌々月) -->
+						<th:block
+							th:if="${(form.payment == 'その他') &&
+							(form.paymentMonth == '月末締め翌々月') &&
+							(form.paymentDay != '末')}"
+						>
+							<p
+								th:text="*{'※お支払日　　　　' +
+								endOfNextMonthYear +'年' +
+								correctENMM + '月' +
+								paymentDay + '日'}"
+							></p>
+						</th:block>
+						
+						<!-- その他(月末締め翌々月 + 末日) -->
+						<th:block
+							th:if="${(form.payment == 'その他') &&
+							(form.paymentMonth == '月末締め翌々月') &&
+							(form.paymentDay == '末')}"
+						>
+							<p
+								th:text="*{'※お支払日　　　　' +
+								endOfNextMonthYear +'年' +
+								correctENMM + '月' +
+								endOfNextMonthDay + '日'}"
+							></p>
+						</th:block>
+					</div>
+					
+					<!-- お支払先情報の表示 -->
+					<div class="line10">
+						<ul>
+							<li>お支払いは下記の指定金融機関口座へお振込み下さいますようお願い致します。</li>
+						</ul>
+					</div>
+					<div class="line11">
+						<p>
+							<span>　 1. 金融機関名</span>
+							三菱UFJ銀行　　　池袋東口支店
+							<br />
+							<span>　 2. 種別・口座番号</span>
+							普通　　1925339
+							<br />
+							<span>　 3. 口座名義</span>
+							株式会社リスペクツ
+						</p>
+					</div>
+				</form>
+			</div>
+		</section>
+	</div>
+	<script language="JavaScript">
+	var refinfo=document.referrer;
+	
+	if(!refinfo){
+		window.location.href = 'http://localhost:8080/';
+		window.location.href = 'http://192.168.0.103:8080/';
+	}
+	</script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<link th:href="@{/css/screenLayout.css}" rel="stylesheet"/>
+	<link th:href="@{/css/button.css}" rel="stylesheet"/>
+	<link th:href="@{/css/form.css}" rel="stylesheet"/>
+	<!--  <link rel="stylesheet" type="text/css" th:href="@{/screenLayout.css}"/>
+	<link rel="stylesheet" type="text/css" th:href="@{/button.css}"/>
+	<link rel="stylesheet" type="text/css" th:href="@{/form.css}"/>-->
+	<title>見積書削除</title>
+</head>
+<body>
+	<!-- 画面サイズ指定 -->
+	<div id="Displaysize">
+	
+		<!--タイトル・トップボタン -->
+		<div class="box">
+			<h2>見積書削除</h2>
+		</div>
+		
+		<a th:href="@{/index}" class="BUTTON">トップ</a>
+		<form style="text-align:center;" th:action="@{/logout}" method="post">
+			<input class="LOGOUTBUTTON" style="top:-100px;" type="submit" value="ログアウト" />
+		</form>
+		
+		<br/>
+		
+		<a th:href="@{/restoreList}" class="BUTTON02" style = "text-align:center; margin-top:5px;">削除したデータ</a>
+		
+		<br/><br/><br/>
+		
+		<table th:if="${list.size()> 0}">
+			<tr><th>見積書No</th><th class="mDate">作成日</th><th class="project">プロジェクト名</th><th class="company">得意先名</th><th>作業者名</th><th class="period">期間</th></tr>
+			
+			<tr th:each="e : ${list}">
+				<td><a th:href="@{/delete/{x}(x=${e.number})}" th:text="${e.number + '-' + e.mBranchNumber}" ></a></td><!-- 見積書No -->
+				<td th:text="${e.mDateYear}+年+${e.correctmDateMonth}+月+${e.correctmDateDay}+日"></td><!-- 作成日 -->
+				<td th:text="${e.project}"></td> <!-- プロジェクト名 -->
+				<td th:text="${e.company}"></td> <!-- 得意先名 -->
+				<td th:text="${e.name}"></td>    <!-- 作業者名 -->
+				<td th:text="${e.startPeriodYear}+年+${e.correctSPM}+月+${e.correctSPD}+日～+${e.endPeriodYear}+年+${e.correctEPM}+月+${e.correctEPD}+日"></td>  <!-- 期間 -->
+			</tr>
+			
+		</table>
+		
+	</div>
+	
+	<script language="JavaScript">
+	var refinfo=document.referrer;
+	
+	if(!refinfo){
+		window.location.href = 'http://localhost:8080/';
+		window.location.href = 'http://192.168.0.103:8080/';
+	}
+	</script>
+</body>
+</html>

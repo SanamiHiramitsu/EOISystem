@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<link th:href="@{/css/screenLayout.css}" rel="stylesheet"/>
+	<link th:href="@{/css/button.css}" rel="stylesheet"/>
+	<!--  <link rel="stylesheet" type="text/css" th:href="@{/screenLayout.css}"/>
+	<link rel="stylesheet" type="text/css" th:href="@{/button.css}"/> -->
+	<title>新規入力・更新・削除選択</title>
+</head>
+<body>
+	<!-- 画面サイズ指定 -->
+	<div id="Displaysize">
+	
+		<!--タイトル・トップボタン -->	
+		<div class="box">
+			<h2>新規入力・更新・削除</h2>
+		</div>
+		
+		<a th:href="@{/index}" class="BUTTON" style="top:-58px;">トップ</a>
+		<form style="text-align:center;" th:action="@{/logout}" method="post">
+			<input class="LOGOUTBUTTON" style="top:-100px;" type="submit" value="ログアウト" />
+		</form>
+		
+		<!-- 見積新規入力画面へ遷移 -->
+		<a th:href="@{/write}" class="BUTTON2">新規入力</a>
+		<br/>
+		
+		<!-- 見積書更新画面へ遷移 -->
+		<a th:href="@{/fix}" class="BUTTON2">更新</a>
+		<br/>
+		
+		<!-- 見積書削除画面へ遷移 -->
+		<a th:href="@{/deleteList}" class="BUTTON2">削除</a>
+		
+	</div>
+	
+	<script language="JavaScript">
+	var refinfo=document.referrer;
+	
+	if(!refinfo){
+		window.location.href = 'http://localhost:8080/';
+		window.location.href = 'http://192.168.0.103:8080/';
+	}
+	</script>
+</body>
+</html>

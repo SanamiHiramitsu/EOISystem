@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+	<link th:href="@{/css/screenLayout.css}" rel="stylesheet"/>
+	<link th:href="@{/css/button.css}" rel="stylesheet"/>
+	<link th:href="@{/css/form.css}" rel="stylesheet"/>
+	<!-- <link rel="stylesheet" type="text/css" th:href="@{/screenLayout.css}"/>
+	<link rel="stylesheet" type="text/css" th:href="@{/button.css}"/>
+	<link rel="stylesheet" type="text/css" th:href="@{/form.css}"/> -->
+	<title>見積書更新</title>
+
+	<!-- 検索フォーム・テーブルの表示 -->
+	<script type="text/javascript" th:inline="javascript">
+	$(function(){
+		$("#button").bind("click",function(){
+			var keyword;
+			keyword = $("#blood").val();
+			mNo = new RegExp(keyword);
+			$("#data tbody tr").each(function(){
+				var txt = $(this).find("td").text();
+				if(txt.match(mNo)!= null){
+					$(this).show();
+				}else{
+					$(this).hide();
+				}
+			});
+		});
+	});
+	</script>
+</head>
+<body>
+	<!-- 画面サイズ指定 -->
+	<div id="Displaysize">
+	
+		<!-- タイトル・トップボタン -->
+		<div class="box">
+			<h2>見積書更新</h2>
+		</div>
+		<a th:href="@{/index}" class="BUTTON">トップ</a>
+		<form style="text-align:center;" th:action="@{/logout}" method="post">
+			<input class="LOGOUTBUTTON" style="top:-100px;" type="submit" value="ログアウト" />
+		</form>
+		
+		<!-- 検索フォーム -->
+		<form th:action="@{/search}" method="post" onsubmit="return false;">
+			<p>得意先名検索:<input type="text" name="company" id="blood" class="form" style="text-align: center;"/>
+				<input type="button" value="検索" id="button">
+			</p>
+		</form>
+		
+		<form th:action="@{/sort}" method="post">
+			<p>表示順 ：
+				<select name="sort">
+					<option value="endPeriod">期間終了日</option>
+					<option value="company">得意先名</option>
+					<option value="name">作業者名</option>
+				</select>
+				
+				<input type="radio" name="order" value="asc" checked>
+				昇順
+				<input type="radio" name="order" value="desc">
+				降順
+				<input type="submit" value="並べ替え" id="button">
+			<br>※先に並べ替えから行ってください。</p>
+		</form>
+		
+		<!-- 見積書一覧 -->
+		<table th:if="${list.size()> 0}"id="data">
+			<thead>
+				<tr>
+					<th>見積書No</th>
+					<th class="project">プロジェクト名</th>
+					<th class="company">得意先名</th>
+					<th>作業者名</th>
+					<th class="period">期間</th>
+				</tr>
+			</thead>
+			
+			<tbody>
+				<tr th:each="e : ${list}">
+					<td>
+					<!-- 見積書No -->
+					<a th:href="@{/update/{x}(x=${e.number})}" th:text="${e.number + '-' + e.mBranchNumber}"></a>
+					</td>
+					
+					<!-- プロジェクト名 -->
+					<td th:text="${e.project}"></td>
+					<!-- 得意先名 -->
+					<td th:text="${e.company}"></td>
+					<!-- 作業者名 -->
+					<td th:text="${e.name}"></td>
+					<!-- 期間 -->
+					<td th:text="${e.startPeriodYear}+年+${e.correctSPM}+月+${e.correctSPD}+日～+${e.endPeriodYear}+年+${e.correctEPM}+月+${e.correctEPD}+日"></td>
+				</tr>
+				
+			</tbody>
+			
+		</table>
+		
+	</div>
+	
+	<script language="JavaScript">
+	var refinfo = document.referrer;
+	
+	if(!refinfo){
+		window.location.href = 'http://localhost:8080/';
+		window.location.href = 'http://192.168.0.103:8080/';
+	}
+	</script>
+</body>
+</html>

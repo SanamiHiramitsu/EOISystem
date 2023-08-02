@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<link th:href="@{/css/screenLayout.css}" rel="stylesheet"/>
+	<link th:href="@{/css/button.css}" rel="stylesheet"/>
+	<!-- <link rel="stylesheet" type="text/css" th:href="@{/screenLayout.css}"/>
+	<link rel="stylesheet" type="text/css" th:href="@{/button.css}"/>-->
+	<title>見積・請求・注文書システム</title>
+	</head>
+<body>
+	<!-- 画面サイズ指定 -->
+	<div id="Displaysize">
+	​
+		<h1 style="text-align:center;">見積・請求・注文書システム</h1>
+		
+		
+	<div style="text-align:center;" th:text="'こんにちは ' + ${#authentication.principal.username} + ' さん'"></div>
+    <form style="text-align:center;" th:action="@{/logout}" method="post">
+        <input type="submit" value="ログアウト" />
+    </form>
+		<br/>
+		<br/>
+		<br/>
+		
+		<!-- 遷移先選択ボタン -->
+		<div style = "text-align:center">
+		
+			<!-- 見積入力・削除画面へ遷移 -->
+			<a th:href="@{/select}" class="BUTTON0" style = "text-align:center">新規入力・更新・削除</a><br/> 
+			<img class="yajirusi" src="/img/arrow.png" style = "text-align:center; margin-top:5px; height: 13mm; width: 22mm;">
+			
+			<br/>
+			
+			<!-- 見積書出力画面へ遷移 -->
+			<a th:href="@{/estimateList}" class="BUTTON0" style = "text-align:center; margin-top:5px;">見積書出力</a><br/>
+			<img class="yajirusi" src="/img/arrow.png" style = "text-align:center; margin-top:5px; height: 13mm; width: 22mm;">
+			
+			<br/>
+			
+			<!-- 注文書出力画面へ遷移 -->
+			<a th:href="@{/purchaseorderList}" class="BUTTON0" style = "text-align:center; margin-top:5px;">注文書出力</a><br/>
+			<img class="yajirusi" src="/img/arrow.png" style = "text-align:center; margin-top:5px; height: 13mm; width: 22mm;">
+			
+			<br/>
+			
+			<!-- 請求データ作成画面へ遷移 -->
+			<a th:href="@{/invoiceDataMake}" class="BUTTON0" style = "text-align:center; margin-top:5px;">請求データ作成</a><br/>
+			<img class="yajirusi" src="/img/arrow.png" style = "text-align:center; margin-top:5px; height: 13mm; width: 22mm;">
+			
+			<br/>
+			
+			<!-- 請求書出力画面へ遷移 -->
+			<a th:href="@{/invoiceList}" class="BUTTON0" style = "text-align:center; margin-top:5px;">請求書出力</a>
+			
+			<br/>
+			<br/>
+			<br/>
+			
+		</div>
+		
+	</div>
+	
+	<script language="JavaScript">
+	var refinfo=document.referrer;
+	
+	if (!refinfo){
+		//window.location.href = 'http://localhost:8080/';
+		window.location.href = 'http://192.168.0.103:8080/';
+	}
+	
+	</script>
+	
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<link th:href="@{/css/screenLayout.css}" rel="stylesheet"/>
+	<link th:href="@{/css/login.css}" rel="stylesheet"/>
+	<title>ログイン</title>
+</head> 
+
+<!-- <!-- 右クリックの禁止 --> 
+<body oncontextmenu="return false;">
+
+	<br><br><br>
+	<br><br><br>
+
+	<h1 class="contact-title">ログイン</h1>
+	<p>ユーザー名、Passwordをご入力の上、「ログイン」ボタンをクリックしてください。</p>
+	
+	<br><br>
+	
+	<h1 th:text="${message}" style="text-align:center; color:red"></h1>
+	
+	<!-- ログインエラーがある場合 -->
+	<div th:if="${param.error}"> 
+		ログインに失敗しました 
+			<!-- 例外が発生している場合 -->
+			<div th:if="${session[SPRING_SECURITY_LAST_EXCEPTION] != null}"> 
+				<!-- エラーメッセージを取得 -->
+				<span th:text="${session[SPRING_SECURITY_LAST_EXCEPTION].message}"></span> 
+			</div> 
+	</div> 
+	
+	<!-- ログアウト情報がある場合 -->
+	<div th:if="${param.logout}"> 
+		ログアウトしました 
+	</div> 
+	
+	<div>
+		 <form id="form" method="post" th:action="@{/login}">
+			
+			<h2><span>見積・請求・注文書システム</span></h2><br>
+			
+			<!--ユーザー名  -->
+			<input type="text" id="username" name="username" value="" placeholder="userid" autocomplete="off"><br>
+			
+			<!-- パスワード -->
+			<input type="password" id="password" name="password" value="" placeholder="Password"><br>
+			
+			<!-- ログインボタン -->
+			<button class="btn" type="submit">ログイン</button>
+		</form>
+	</div>
+	<a href="/signup">ユーザー登録</a>
+</body>
+</html>

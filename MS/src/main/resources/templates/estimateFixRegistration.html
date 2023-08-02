@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<link th:href="@{/css/screenLayout.css}" rel="stylesheet"/>
+	<link th:href="@{/css/button.css}" rel="stylesheet"/>
+	<!--  <link rel="stylesheet" type="text/css" th:href="@{/screenLayout.css}"/>
+	<link rel="stylesheet" type="text/css" th:href="@{/button.css}"/> -->
+	<title>見積データ更新完了</title>
+</head>
+<body>
+	<!-- 画面サイズ指定 -->
+	<div id="Displaysize">
+	
+		<!--タイトル・トップボタン -->
+		<div class="box">
+			<h2>見積データ更新</h2>
+		</div>
+		
+		<a th:href="@{/index}" class="BUTTON">トップ</a>
+		<form style="text-align:center;" th:action="@{/logout}" method="post">
+			<input class="LOGOUTBUTTON" style="top:-100px;" type="submit" value="ログアウト" />
+		</form>
+		
+		<!-- 更新完了通知 -->
+		<p style="text-align:center; margin-top:10%; font-size:25px; font-weight: bold;">見積データを更新致しました。</p>
+		
+		<!-- 遷移ボタン -->
+		<div class="button_spacing">
+			<a th:href="@{/fix}" class="BUTTON2">  見積書更新  </a>
+			<a th:href="@{/estimateList}" class="BUTTON2">  見積書一覧  </a>
+			<a th:href="@{/estimateList}" class="BUTTON2">  注文書一覧  </a>
+		</div>
+		
+	</div>
+	
+	<script language="JavaScript">
+	var refinfo=document.referrer;
+	
+	if(!refinfo){
+		window.location.href = 'http://localhost:8080/';
+		window.location.href = 'http://192.168.0.103:8080/';
+	}
+	</script>
+</body>
+</html>
